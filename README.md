@@ -42,10 +42,12 @@ Spec only. Files describe:
 
 Read order:
 
-1. `SPEC.md` — executive overview.
-2. `docs/architecture/01-overview.md` through `11-roadmap-risks.md`.
-3. `docs/api/node-reference.md` — proposed node types.
-4. `docs/examples/` — two worked examples.
+1. `SCOPE.md` — **start here.** Vision, audience, phased execution,
+   use-case brainstorm, decision triggers, explicit non-goals.
+2. `SPEC.md` — executive overview of the architecture.
+3. `docs/architecture/01-overview.md` through `11-roadmap-risks.md`.
+4. `docs/api/node-reference.md` — proposed node types.
+5. `docs/examples/` — two worked examples.
 
 ## Relationship to other projects in this repo
 

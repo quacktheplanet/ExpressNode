@@ -4,6 +4,11 @@
 **Status:** Specification. No implementation.
 **Target:** Blender 4.x / 5.x.
 
+> See also `SCOPE.md` — vision, audience, use cases, phased execution,
+> and the decision triggers governing when (and whether) to escalate
+> from one phase to the next. This doc covers *what we're building*;
+> `SCOPE.md` covers *why, for whom, and how much*.
+
 ## Premise
 
 Blender's Geometry Nodes evaluates as a compiled data-flow graph: parallel,
