@@ -1,72 +1,59 @@
-# Coding Nodes for Blender
+# Coding Nodes
 
-A specification for a Blender addon that introduces **Python-executing nodes**
-in a custom node tree, addressing the gap that native Geometry Nodes does not
-allow arbitrary Python execution.
+A Blender addon that compiles a **Python expression** into a clean,
+group-wrapped **Geometry Nodes subtree**. The user types math; the
+addon produces a readable algorithmic node graph.
 
-**Status: specification only. No implementation code in this repo.**
+Two shapes, one compiler:
 
-## Why this project exists
+- **Expression Modifier.** A modifier with a text field. Type an
+  equation; see the result. Never open the GN editor unless you want
+  to.
+- **Expression Node Group.** A node group you drop into any existing
+  GN tree. Same compiler. Embeddable in larger graphs.
 
-Blender's Geometry Nodes is intentionally not a Python execution environment.
-That decision is correct for GN's architecture (parallel, GPU-friendly,
-deterministic), but it leaves a real authoring gap: motion graphics,
-mathematical experimentation, numpy-vectorized algorithms, and rapid
-prototyping benefit from Python in-graph.
+## Quick example
 
-Existing tools in the space:
+```python
+def ripple(P, t):
+    return vec3(0, 0, sin(P.x * 6 + t) * 0.3)
+```
 
-| Tool | What it offers |
-|---|---|
-| **Sverchok** | A whole parallel node universe with Python script nodes |
-| **Animation Nodes** | Motion-graphics scripting in nodes |
-| **OSL** | Programmable shader logic in Cycles |
+Type that into the Expression Modifier. The mesh ripples. The
+generated GN tree contains one `ripple` group node with the math
+inside — not a wall of `Math (MULTIPLY)` nodes.
 
-This project specifies a Blender addon for Python-executing nodes
-that interoperate with native Geometry Nodes through shared named
-attributes.
+## Status
 
-## Vision in one sentence
-
-A custom node tree where each node may run a small Python (or numpy) snippet,
-interoperating with neighboring Geometry Nodes modifiers through shared named
-attributes, with caching, error reporting, and a usable editor UX.
-
-## Status of this repo
-
-Spec only. Files describe:
-- the design space and existing alternatives,
-- three implementation levels (addon / hybrid compiler / native) with tradeoffs,
-- the proposed node tree, socket types, evaluation model, execution semantics,
-- the Blender integration surface,
-- performance and roadmap.
+Specification + build plan complete. Implementation queued.
 
 Read order:
 
-1. `SCOPE.md` — **start here.** Vision, audience, phased execution,
-   use-case brainstorm, decision triggers.
-2. `SPEC.md` — executive overview of the architecture.
-3. `docs/architecture/01-overview.md` through `11-roadmap-risks.md`.
-4. `docs/api/node-reference.md` — proposed node types.
-5. `docs/examples/` — two worked examples.
+1. `SCOPE.md` — vision, audience, success criteria.
+2. `SPEC.md` — architecture: compiler pipeline, Python subset, GN
+   emission strategy, the two user-facing shapes.
+3. `PLAN.md` — concrete build milestones.
+4. `docs/expression-reference.md` — the supported Python surface.
+5. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
+   comparison.
+6. `docs/examples/` — two worked examples.
 
-## Relationship to other projects in this repo
+## Relationship to the other projects in this repo
 
 | Project | Role |
 |---|---|
-| `../annihilation-morph-script/` | Runnable demo of sacred-geometry forms |
-| `../sacred-geometry-engine/` | Framework spec for the same vision at scale |
-| `coding-nodes/` (this) | Infrastructure that would unlock both — Python nodes can host the sacred-geometry DSL or the morph script's math directly |
+| `../annihilation-morph-script/` | Single Blender script — the visual target |
+| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter Coding Nodes builds on. |
+| `coding-nodes/` (this) | Adds a Python-expression frontend to that compiler, plus the user-facing modifier and node group. |
 
-Coding Nodes is independent of the other two projects — it stands on its own
-as a Blender capability. But if it exists, the Sacred Geometry Engine becomes
-much easier to implement, because the DSL can be hosted as a single
-NumpyKernel node rather than emitted as a sprawling GN graph.
+Coding Nodes is an addon that sits on top of `sacred_geometry`'s
+compiler infrastructure. The IR and GN backend live there; the
+frontend and UX shells live here.
 
 ## Target platform
 
-Blender 4.x and 5.x. Python 3.11+. Numpy. Optionally scipy/numba.
+Blender 4.x and 5.x. Python 3.11+.
 
 ## License
 
-Unlicensed. Treat as private specification until decided.
+Unlicensed. To be decided before public release.

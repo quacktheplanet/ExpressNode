@@ -1,141 +1,244 @@
 # Coding Nodes — Executive Specification
 
-**Version:** 0.1 (draft)
-**Status:** Specification. No implementation.
+**Version:** 0.2 (focused)
+**Status:** Specification. Build queued.
 **Target:** Blender 4.x / 5.x.
 
-> See also `SCOPE.md` — vision, audience, use cases, phased execution,
-> and the decision triggers governing when (and whether) to escalate
-> from one phase to the next. This doc covers *what we're building*;
-> `SCOPE.md` covers *why, for whom, and how much*.
+> See also `SCOPE.md` (vision and audience) and `PLAN.md` (concrete
+> build steps).
 
-## Premise
+## What it is
 
-Blender's Geometry Nodes evaluates as a compiled data-flow graph: parallel,
-GPU-friendly, deterministic, with the GIL kept out. Those constraints make
-arbitrary Python execution inside GN architecturally incorrect.
+A Blender addon that compiles a **Python expression** into a clean,
+group-wrapped **Geometry Nodes subtree** and exposes it through:
 
-But there is real demand for Python-in-nodes: vectorized numpy algorithms,
-mathematical experiments, custom L-systems, SDF prototyping, rapid
-iteration. The right answer is **a separate node tree that runs Python**,
-designed to interoperate with GN at attribute boundaries rather than fight
-GN's evaluation model.
+- **Shape A — Expression Modifier.** A modifier with a text field. Type
+  `sin(P.x * 6 + t) * 0.3`. The mesh responds.
+- **Shape B — Expression Node Group.** A node group the user drops into
+  any GN tree. Same text field, same compiler, embeddable in larger graphs.
 
-## What this project specifies
-
-An addon that registers:
-
-- A new `NodeTree` subclass `PyNodeTree` with its own editor space.
-- A library of nodes that execute Python: `PyExpr`, `NumpyKernel`,
-  `SDFFunction`, and friends.
-- An evaluation model: pull-based DAG, cached per node, recomputed on input
-  change.
-- Bridges to Blender geometry: `bmesh`, `Mesh.attributes`,
-  `foreach_get`/`foreach_set`, and named-attribute round-trip with GN.
-- A live-update story: depsgraph hooks + cache invalidation.
-- A UI: code editor widget per node, error display, print viewer.
-
-The scope is data-flow nodes that execute Python within Blender. See
-`docs/architecture/03-three-levels.md` for the implementation levels
-and why the addon path comes first.
+Both shapes share one compiler. The user writes the expression; the addon
+produces a readable algorithmic node tree — not a flat sea of math nodes.
 
 ## Architecture at a glance
 
 ```
-+---------------------------------------+
-|  PyNodeTree editor (custom space)     |
-|  user authors a graph of Python nodes |
-+---------------------------------------+
-                  |
-                  v
-+---------------------------------------+
-|  Pull-based evaluator                 |
-|  - topological sort                   |
-|  - per-node code object cache         |
-|  - per-node (id, input-hash) cache    |
-+---------------------------------------+
-                  |
-                  v
-+---------------------------------------+
-|  Geometry / attribute bridge          |
-|  - bpy.types.Mesh <-> numpy           |
-|  - named attributes <-> GN modifier   |
-+---------------------------------------+
-                  |
-                  v
-+---------------------------------------+
-|  Blender scene                        |
-+---------------------------------------+
++---------------------------+
+| User-written expression   |   "sin(P.x * 6 + t) * 0.3"
++---------------------------+
+              |
+              v
++---------------------------+
+|  Python AST parser        |   ast.parse(source)
++---------------------------+
+              |
+              v
++---------------------------+
+|  AST -> EvalGraph         |   typed IR, shared with sacred_geometry
++---------------------------+
+              |
+              v
++---------------------------+
+|  Group-wrapping pass      |   wraps functions as named GN sub-groups
++---------------------------+
+              |
+              v
++---------------------------+
+|  GN tree emitter          |   sacred_geometry.compiler.gn_backend
++---------------------------+
+              |
+              v
++---------------------------+
+|  Blender GN node group    |   attached as a modifier (Shape A)
+|                           |   or dropped into a tree (Shape B)
++---------------------------+
 ```
 
-## Layered spec
+## Reuse of existing infrastructure
 
-| Doc | Purpose |
+The compiler reuses the IR and GN backend already built in
+`sacred-geometry-engine/sacred_geometry/`:
+
+- `sacred_geometry.ir.eval_graph.EvalGraph` — the typed IR.
+- `sacred_geometry.compiler.gn_backend` — the EvalGraph → GN emitter
+  (extended in this project with a group-wrapping pass).
+- `sacred_geometry.compiler.optimize` — CSE + DCE passes.
+
+The new code in this project:
+
+- **Python AST → EvalGraph frontend.** A new module that parses a
+  Python expression and emits the same EvalGraph the SacredEntity DSL
+  emits.
+- **Group-wrapping emitter pass.** An upgrade to the GN backend so it
+  produces `Function → sub-group` mappings instead of flat math nodes.
+- **Modifier UI / node-group wrapper.** The Blender-side surfaces.
+
+## The Python subset
+
+The compiler accepts a statically-shaped, statically-typed,
+pure-expression subset of Python. The rule of thumb:
+
+> If the function reads like math to someone who's never run Python, it
+> probably compiles.
+
+**Supported:**
+- Numeric types: `float`, `int`, `bool`.
+- Fixed vectors: `vec2`, `vec3`, `vec4`.
+- Arithmetic, comparisons, boolean operators.
+- Control flow: `if/else` expressions, function definitions, function
+  calls.
+- Built-in functions: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
+  `atan2`, `sqrt`, `pow`, `exp`, `log`, `abs`, `min`, `max`, `clamp`,
+  `mix`, `smoothstep`, `noise`, `voronoi`, `length`, `dot`, `cross`,
+  `normalize`, `reflect`, `vec2`, `vec3`, `vec4`.
+- Built-in variables: `P` (position), `N` (normal), `i` (index),
+  `t` (scene time, seconds), `frame` (current frame).
+- Blender access: `attr("name")` reads named attribute, `obj("name",
+  "field")` reads another object's data, `set_attr("name", value)`
+  writes a named attribute.
+
+**Out of the subset (won't compile, with clear error messages):**
+- I/O, network, file operations.
+- Dynamic attribute access (`getattr` with runtime strings).
+- Classes, metaclasses, decorators (other than the kernel decorator).
+- `*args` / `**kwargs`.
+- Mutable globals, exceptions as control flow.
+- String formatting, regex.
+- Variable-shape arrays, dicts, sets.
+
+Full reference: `docs/expression-reference.md`.
+
+## GN emission strategy: avoiding "a million math nodes"
+
+The defining quality bar. A naive compiler dumps every Python operation
+into an individual `Math` or `Vector Math` node, producing an
+unreadable graph. The compiler this project ships does the opposite:
+
+- **Each user-defined function becomes a GN group node.** A `def
+  noise_layer(P, scale)` in Python is one box in the output graph,
+  named `noise_layer`, with the math living inside.
+- **Trivial one-liners inline.** `x * 2` doesn't get its own group.
+- **Nested functions become nested groups.** The structure of the code
+  is the structure of the graph.
+- **Layout is automatic and readable.** Frame nodes group logically
+  related ops. Lines don't cross unnecessarily. Group nodes are wide
+  enough to read names.
+- **Nodes are labeled** with the source-line snippet they came from.
+
+The user opens the modifier panel, expands the node group, and sees:
+`ripple → noise → set_position`. Not a wall of arithmetic.
+
+## Shape A: Expression Modifier
+
+A new modifier type registered by the addon. UI:
+
+```
++-----------------------------------------------------+
+| Geometry Nodes Modifier: Expression                 |
++-----------------------------------------------------+
+| Target: Position (vec3) | Normal Offset | Custom    |
+| Expression:                                         |
+|   +-----------------------------------------+       |
+|   | def ripple(P, t):                       |       |
+|   |     return vec3(0, 0, sin(P.x*6+t)*.3)  |       |
+|   +-----------------------------------------+       |
+| [Recompile]  [View Graph]  [Errors: 0]              |
++-----------------------------------------------------+
+```
+
+- Edit the expression → addon recompiles (debounced) → modifier rebuilds
+  its node group → viewport updates.
+- "View Graph" opens the generated node group in the GN editor for
+  inspection. Useful for learning and debugging.
+- "Errors" surfaces compile failures with source-line markers.
+
+## Shape B: Expression Node Group
+
+A `coding_nodes_expression` node group the user drops into any existing
+GN tree via `Shift+A → Group → Expression`. Its inputs are auto-derived
+from the user's expression signature.
+
+Inside the group: the same compiler output as Shape A. Outside: the
+group looks and behaves like any other GN group node, fits inside
+larger graphs.
+
+Both shapes share the same compiler and produce the same output. The
+choice is a UX preference: A for "I just want it to work," B for "I
+want it inside my larger graph."
+
+## Access to Blender features
+
+The compiled group can hook into any GN input the user's expression
+references:
+
+| Expression form | What it becomes |
 |---|---|
-| `docs/architecture/01-overview.md` | Problem statement, vision |
-| `docs/architecture/02-existing-alternatives.md` | Sverchok / AN / OSL comparison |
-| `docs/architecture/03-three-levels.md` | Addon vs Hybrid Compiler vs Native — tradeoffs |
-| `docs/architecture/04-node-tree-design.md` | NodeTree, sockets, evaluation model |
-| `docs/architecture/05-python-execution.md` | Code caching, sandboxing, error reporting |
-| `docs/architecture/06-geometry-bridge.md` | Mesh / points / curves ↔ numpy |
-| `docs/architecture/07-live-update.md` | Depsgraph hooks, dependency tracking, caching |
-| `docs/architecture/08-gn-interop.md` | Reading from / writing to a GN modifier |
-| `docs/architecture/09-ui-and-editor.md` | Editor space, code widget, error display |
-| `docs/architecture/10-performance.md` | Vectorization, GIL boundaries, when to bail |
-| `docs/architecture/11-roadmap-risks.md` | Phased delivery, risks |
-| `docs/api/node-reference.md` | Proposed node types with pseudocode |
-| `docs/examples/displace-with-python.md` | End-to-end example: PyExpr displacement |
-| `docs/examples/numpy-field-kernel.md` | Vectorized curl-noise as a NumpyKernel node |
+| `P` | `Input → Position` node |
+| `N` | `Input → Normal` node |
+| `i` | `Input → Index` node |
+| `t` | `Input → Scene Time → Seconds` |
+| `frame` | `Input → Scene Time → Frame` |
+| `attr("disp")` | `Named Attribute("disp")` |
+| `set_attr("col", v)` | `Store Named Attribute("col", v)` |
+| `obj("Cube", "position")` | `Object Info("Cube") → Position` |
 
-## Implementation levels (summary; details in `03-three-levels.md`)
+Shaders consume what the compiler writes via the `Attribute` node. The
+compiler can't read shader output directly (shaders run after geometry
+in Blender's pipeline) but can drive every input a shader needs.
 
-| Level | What | Effort | Outcome |
-|---|---|---|---|
-| **1. Addon** | Custom node tree + Python-executing nodes | 2–6 months, 1–2 devs | Real, shippable. Recommended start. |
-| **2. Hybrid Compiler** | Parse Python expressions, emit GN graphs ("VEX for Blender") | Add 6–12 months on top of L1 | Mainstream GN parity, much faster execution |
-| **3. Native** | Modify Blender C++ to allow Python in GN | Multi-year, core dev | Speculative; not pursued first |
+## Live update
 
-We recommend starting at Level 1 and treating Level 2 as a future enhancement
-that **wraps** Level 1, not replaces it.
+On expression edit:
 
-## Authoring example (Level 1)
+1. The addon debounces (~250 ms) to coalesce keystrokes.
+2. Parses the source. On parse error: red marker, no rebuild.
+3. Compiles to EvalGraph. On compile error: marker on the offending
+   line, no rebuild.
+4. Diffs against the previous EvalGraph. If unchanged: no rebuild.
+5. Rebuilds the GN group in place. Parameter bindings preserved when
+   possible.
 
-A `NumpyKernel` node that takes an input geometry's positions, computes a
-curl-noise displacement vectorized in numpy, writes a `displacement`
-attribute back:
+## Error reporting
 
-```python
-# Inside the NumpyKernel node's code field:
-import numpy as np
+Compile errors carry the AST node's source line and column. The UI
+shows them inline:
 
-P = inputs["positions"]            # (N, 3) float32
-t = inputs["time"]
-freq = inputs["freq"]
-
-eps = 1e-3
-def n(p, t):
-    return np.sin(freq * p[..., 0] + t) * \
-           np.cos(freq * p[..., 1] + t * 1.3) * \
-           np.sin(freq * p[..., 2] + t * 0.7)
-
-nx = n(P + np.array([0, eps, 0]), t) - n(P + np.array([0, -eps, 0]), t)
-ny = n(P + np.array([0, 0, eps]), t) - n(P + np.array([0, 0, -eps]), t)
-nz = n(P + np.array([eps, 0, 0]), t) - n(P + np.array([-eps, 0, 0]), t)
-
-outputs["displacement"] = np.stack([nx, ny, nz], axis=-1) * 0.2
+```
+  def ripple(P, t):
+      return sin(getattr(math, "sin"))   <-- error here
+                  ^
+  Compile error: getattr() with a runtime string isn't supported.
+                 Use a direct call to sin() instead.
 ```
 
-A neighboring GN modifier reads the `displacement` named attribute and
-plugs it into a Set Position node. The Coding Nodes addon writes the
-attribute on the same object between the two evaluations.
+Errors do not crash anything. The viewport keeps the last good version
+of the node group; the user keeps typing.
 
-## Open architectural questions
+## What this project deliberately reuses, builds, and skips
 
-These are flagged in the relevant sub-docs:
+**Reuses (from `sacred-geometry-engine/sacred_geometry/`):**
+- The `EvalGraph` IR.
+- The optimizer passes (CSE, DCE).
+- The GN backend emitter (extended for group wrapping).
 
-- Restricted exec vs full Python? (`05-python-execution.md`)
-- Editor as separate space or sub-tree of GN editor? (`09-ui-and-editor.md`)
-- Cache key: input hash, or input id + version counter?
-  (`07-live-update.md`)
-- GN attribute round-trip: shared attribute names with the user choosing
-  the convention, or addon-managed namespace? (`08-gn-interop.md`)
+**Builds (new in this project):**
+- The Python AST → EvalGraph frontend.
+- The group-wrapping pass.
+- Two user-facing surfaces (Expression Modifier, Expression Node Group).
+- Live-update plumbing.
+- An expression reference doc and two worked examples.
+
+**Open for later:**
+- OSL backend (compile the same expression to a Cycles shader).
+- GLSL backend (compile to Eevee shading).
+- GPU compute backend (for very large point counts).
+- Additional frontends (Halide-style array DSL, visual node authoring).
+
+## Related docs
+
+- `SCOPE.md` — vision, audience, success criteria.
+- `PLAN.md` — concrete build steps and milestones.
+- `docs/expression-reference.md` — full supported Python surface.
+- `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL comparison.
+- `docs/examples/ripple.md` — hello-world walkthrough.
+- `docs/examples/curl-noise.md` — multi-step example.
