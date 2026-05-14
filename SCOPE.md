@@ -1,9 +1,9 @@
 # Coding Nodes — Scope & Vision
 
 This doc defines what Coding Nodes is *trying to be*, who it's for, what
-evidence we'd need before scaling up, and what we will not do. It
-complements `SPEC.md` (which describes architecture). Read this first
-when deciding what to build, when to ship, and when to say no.
+evidence we'd need before scaling up. It complements `SPEC.md` (which
+describes architecture). Read this first when deciding what to build
+and when to ship.
 
 ## Vision
 
@@ -11,11 +11,9 @@ when deciding what to build, when to ship, and when to say no.
 > opening up vectorized math, recursive algorithms, and external data
 > ingestion without leaving the node-based authoring paradigm.
 > Open source. Built for technical artists, generative designers,
-> computational tinkerers. A Grasshopper-shaped tool for Blender — not
-> a Houdini replacement.
+> computational tinkerers. A Grasshopper-shaped tool for Blender.
 
-We are not trying to replace Blender. We are not trying to compete with
-Houdini. We are filling the gap between "vanilla Geometry Nodes is too
+We are filling the gap between "vanilla Geometry Nodes is too
 limited" and "I need a separate DCC for this."
 
 ## Audience
@@ -32,10 +30,6 @@ Concretely:
 - **Researchers** using Blender for scientific visualization who need to
   read external data into geometry.
 - **Students** learning procedural / algorithmic design.
-
-The non-audience: typical Blender modelers who want buttons that make
-pretty things. They are well served by vanilla Blender. We are not for
-them.
 
 ## Why this needs to exist
 
@@ -216,30 +210,22 @@ is visually identical. Performance is at least 10× faster on N=1M points.
   - GPU execution of user-written code (not just compiled-to-GN code).
   - Native install with no `pip install numpy` step.
 
-### Phase 3 — Open-ended
+### Phase 3 — Open
 
-Deliberately not committed. Possibilities, in increasing scope:
+Held open. Possible directions, to be evaluated when we get there:
 
 1. **Polish.** Documentation, cookbook, example library (50+ kernels),
-   integration tutorials. **Most likely.**
+   integration tutorials. The most likely default.
 2. **Upstream contribution.** Push features into mainline Blender via
-   the contributor pipeline. Long shot — the core team's reasoning
-   (above) is real and recent, and we'd need to demonstrate the
-   architectural objections don't apply to our approach. Free
-   distribution if it lands.
+   the contributor pipeline. Demonstrates the architectural objections
+   don't apply to our approach. Free distribution if it lands.
 3. **Standalone compute engine.** Build a separate process that runs
    compute, exports geometry to Blender via a thin bridge (Houdini
-   Engine-style). Only if Phase 1+2 prove the audience is large enough
-   to justify maintaining a parallel ecosystem. **Unlikely** — adds
-   maintenance load without obvious incremental value over Phase 2.
+   Engine-style). Trade: adds maintenance load; gains independence
+   from Blender's evaluation model.
 4. **Blender fork.** A downstream Blender with native Python-in-GN
-   integration. **Explicitly off the table for now.** Rebasing on every
-   upstream release is a maintenance trap; people don't install forks
-   when vanilla works; splits the user community. We will not pursue
-   this unless multiple Phase 2 limits become user-facing in ways no
-   addon can fix, AND a sustainable maintainer team exists.
-5. **New DCC from scratch.** **Excluded.** Blender took 30 years.
-   Houdini took 35. Not a reasonable project goal.
+   integration. Trade: full control; ongoing rebase work and a parallel
+   community to maintain.
 
 The Phase 3 choice will be evidence-driven and made at the time, not
 pre-committed.
@@ -268,53 +254,26 @@ Before escalating between phases, we want to see:
    contributors are vulnerable to bus factor 1; that's a real
    constraint on what scope is sustainable.
 
-If these signals are weak, **staying at Phase 1 or Phase 2 indefinitely
-is a valid outcome.** Examples in the Blender ecosystem of valuable
-addons that found their niche and stayed there: HardOps, MachinTools,
-NodeWrangler, BoxCutter. We can be one of those without ever needing
-Phase 3.
-
-## Explicit non-goals (clarified)
-
-- **We will not fork Blender.**
-- **We will not build a new DCC.**
-- We will not commit to a standalone compute engine unless evidence
-  demands it.
-- We will not require AI/LLM dependencies at runtime. AI assistance for
-  authoring code is fine as an optional layer; the engine must work
-  offline and deterministically without it.
-- We will not chase Houdini parity. Houdini's strengths (VEX, USD-native
-  pipeline, simulation breadth, three decades of tuning) are decades
-  ahead. We aim to be best-in-class at "Python in the Blender graph,"
-  not at "everything Houdini does."
+Phase 1 and Phase 2 are each complete products on their own.
+HardOps, MachinTools, NodeWrangler, and BoxCutter show what a
+focused Blender addon can be without ever growing beyond its niche.
 
 ## What success looks like
 
-### Modest success (2 years out, plausible)
+A two-year horizon:
 
-- Coding Nodes is an installable Blender addon, used by a few thousand
-  generative artists, technical artists, and researchers.
+- Coding Nodes is an installable Blender addon used by generative
+  artists, technical artists, researchers, and computational designers.
 - It's the canonical answer when someone asks "how do I do FFT in
   Geometry Nodes?" or "how do I read CSV into a mesh?"
-- It coexists with vanilla GN — nobody has to choose.
+- It coexists with vanilla GN as a complement.
 - Phase 2 (hybrid compiler) has shipped and proven useful for
   performance-sensitive cases.
-- A small community of contributors maintains it.
-- We are not trying to replace Blender or compete with Houdini. We made
-  one specific thing measurably better.
-
-### Ambitious success (if the audience proves larger than expected)
-
-- Coding Nodes becomes the de facto open-source Grasshopper-shaped
-  procedural-with-code system.
-- Educational programs (architecture, computational design, generative
-  art) adopt it.
-- Production studios use it in pipelines.
-- Eventually — maybe — Blender core absorbs the hybrid-compiler approach
-  upstream because the demand becomes undeniable.
-
-We aim at the modest version. We let the ambitious version emerge if
-the signal supports it.
+- A community of contributors maintains it.
+- Educational programs in computational design and generative art use
+  it. Studios use it in pipelines.
+- It is the de facto open-source Grasshopper-shaped
+  procedural-with-code system for Blender.
 
 ## How to use this doc
 

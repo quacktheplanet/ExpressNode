@@ -75,9 +75,9 @@ but the IPC cost (serializing numpy arrays) means it only pays off for
 
 ## GPU
 
-Out of scope for PyNodes the addon. If the user needs GPU performance,
-the answer is GN (which targets GPU in its long-term roadmap). PyNodes is
-the CPU/Python tier.
+PyNodes operates as the CPU/Python tier. For GPU performance, GN
+(targeting GPU in its long-term roadmap) is the right tool, and
+PyNodes' attribute bridge lets you hand work to it cleanly.
 
 ## Common performance traps
 

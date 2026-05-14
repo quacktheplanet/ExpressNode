@@ -35,13 +35,9 @@ An addon that registers:
 - A live-update story: depsgraph hooks + cache invalidation.
 - A UI: code editor widget per node, error display, print viewer.
 
-## What it does NOT specify
-
-- A Python implementation living *inside* native GN. That requires Blender
-  core changes (C++). See `docs/architecture/03-three-levels.md` for why
-  we recommend the addon path first.
-- A general programming environment. The scope is data-flow nodes that
-  execute Python; not a notebook, not a REPL, not a debugger.
+The scope is data-flow nodes that execute Python within Blender. See
+`docs/architecture/03-three-levels.md` for the implementation levels
+and why the addon path comes first.
 
 ## Architecture at a glance
 
@@ -132,13 +128,6 @@ outputs["displacement"] = np.stack([nx, ny, nz], axis=-1) * 0.2
 A neighboring GN modifier reads the `displacement` named attribute and
 plugs it into a Set Position node. The Coding Nodes addon writes the
 attribute on the same object between the two evaluations.
-
-## Out of scope (v0.1)
-
-- Multi-threading inside Python nodes (the GIL is a hard reality).
-- Persistent state across frames at the node level (use Blender's
-  Simulation Zones for that; PyNodes can call into them).
-- Multi-DCC support.
 
 ## Open architectural questions
 

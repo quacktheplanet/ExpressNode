@@ -112,8 +112,7 @@ in Blender's Text Editor (option B), we ship a small `pynodes.pyi` stub
 file that, when included in the workspace, gives some autocomplete in
 external IDEs (VS Code with Blender extension).
 
-True in-editor autocomplete requires a custom widget. Out of scope for
-phase 1.
+True in-editor autocomplete needs a custom widget. Slated for phase 2.
 
 ## Theming
 

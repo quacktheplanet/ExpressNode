@@ -14,16 +14,17 @@ deterministic), but it leaves a real authoring gap: motion graphics,
 mathematical experimentation, numpy-vectorized algorithms, and rapid
 prototyping benefit from Python in-graph.
 
-Existing tools that get close:
+Existing tools in the space:
 
-| Tool | What it offers | What it doesn't |
-|---|---|---|
-| **Sverchok** | A whole parallel node universe with Python script nodes | Its own node ecosystem; doesn't interoperate cleanly with native GN |
-| **Animation Nodes** | Motion-graphics scripting in nodes | Mostly superseded by GN; aging codebase |
-| **OSL** | Programmable shader logic in Cycles | Shaders only; no geometry effect |
+| Tool | What it offers |
+|---|---|
+| **Sverchok** | A whole parallel node universe with Python script nodes |
+| **Animation Nodes** | Motion-graphics scripting in nodes |
+| **OSL** | Programmable shader logic in Cycles |
 
-Native Python-executing nodes that interop with Geometry Nodes do not exist.
-This project specifies what that would look like.
+This project specifies a Blender addon for Python-executing nodes
+that interoperate with native Geometry Nodes through shared named
+attributes.
 
 ## Vision in one sentence
 
@@ -43,7 +44,7 @@ Spec only. Files describe:
 Read order:
 
 1. `SCOPE.md` — **start here.** Vision, audience, phased execution,
-   use-case brainstorm, decision triggers, explicit non-goals.
+   use-case brainstorm, decision triggers.
 2. `SPEC.md` — executive overview of the architecture.
 3. `docs/architecture/01-overview.md` through `11-roadmap-risks.md`.
 4. `docs/api/node-reference.md` — proposed node types.

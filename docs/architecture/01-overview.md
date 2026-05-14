@@ -49,14 +49,12 @@ it.
 - A pipeline TD wants to read external data (CSV, JSON, custom binary)
   into geometry. PyNodes can call standard Python IO; GN cannot.
 
-## Non-goals
+## Shape of the project
 
-- **General programming environment.** Not a notebook, not a REPL, not a
-  Python IDE. The nodes are short snippets, not modules.
-- **Replacement for GN.** PyNodes interoperates with GN; doesn't replace
-  it. Heavy parallel work belongs in GN.
-- **Pure-Python rendering.** No attempt to render with Python; visualize
-  via Blender's renderers.
+PyNodes is a data-flow node system for short Python snippets that runs
+alongside Geometry Nodes. Each node holds a small kernel; outputs land
+on a Blender mesh as named attributes that GN modifiers can consume.
+Heavy parallel work continues to live in GN; PyNodes complements it.
 
 ## What "done" looks like (phase 1 only)
 

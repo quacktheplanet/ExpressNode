@@ -88,17 +88,13 @@ the inputs and outputs of the script.
 - The architectural objections (GIL, parallelism, determinism, security)
   must each be solved.
 - Upstream acceptance is uncertain.
-- Outside any small team's reasonable scope.
-
-**Status.** Out of scope for this project. Mentioned for completeness.
 
 ## Decision
 
-Start at **Level 1**. Ship a usable addon. Take on Level 2 only after
+Start at **Level 1**. Ship a usable addon. Take on Level 2 once
 Level 1 has real users with real performance complaints that Level 2
-would solve. Do not pursue Level 3 — instead, contribute lessons learned
-to upstream discussions if and when the Blender core team explores
-Python-in-GN.
+would solve. Contribute lessons learned to upstream discussions
+if and when the Blender core team explores Python-in-GN.
 
 ## What "starting at Level 1" means in practice
 

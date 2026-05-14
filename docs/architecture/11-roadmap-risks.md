@@ -116,13 +116,6 @@ Custom node trees are subtle. Bugs around saving/loading, undo, and
 linked libraries are time sinks. Mitigation: test coverage from day one,
 specifically for save/load round-trips and undo behavior.
 
-## What we deliberately defer
-
-- Per-frame state at the node level (use Blender's Simulation Zones).
-- Multi-DCC support (Blender only).
-- Cloud / remote evaluation.
-- AI-generated code suggestions inside nodes (separate project, opt-in).
-
 ## Related docs
 
 - Three levels: `03-three-levels.md`

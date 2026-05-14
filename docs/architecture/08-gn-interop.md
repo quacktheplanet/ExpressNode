@@ -3,8 +3,8 @@
 ## Purpose
 
 Define the bridge between PyNodes and native Geometry Nodes. This bridge is
-why the project exists: PyNodes is not a replacement for GN, it's a
-collaborator.
+the heart of the project: PyNodes and GN collaborate, each handling the
+work it does best.
 
 ## Interop model
 
