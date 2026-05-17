@@ -37,9 +37,11 @@ frontend, the grouping pass, and the user-facing shapes.
 
 Each milestone leaves a working, tested artifact.
 
-> **Status:** M1 ✅ done. M2 ✅ done. Next up: M3.
-> Run `python3 -m pytest tests/` (see `TESTING.md` for the
-> milestone-by-milestone verification path).
+> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ (Blender verification
+> pending — see the checklist in `TESTING.md`). Next: run the M3
+> Blender checklist, then M4.
+> Run `python3 -m pytest tests/` (115 headless tests; see `TESTING.md`
+> for the milestone-by-milestone path).
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
 
@@ -81,22 +83,33 @@ wrapping, all of which require `bpy`. That emission work moves into M3,
 where it is verified in Blender. This keeps M1/M2 fully headless and
 CI-friendly; see `TESTING.md`.
 
-### M3 — GN op emitters + Expression Modifier (Shape A) (≈1–1.5 weeks)
+### M3 — GN op emitters + Expression Modifier (Shape A)
 
-**Deliverables:**
-- GN emitters for every op the frontend produces (`input.*`, `math.*`,
-  `vec.*`, `texture.*`, `compare.*`, `bool.*`, `flow.if`, `attr.*`,
-  `obj.*`, `constant.*`).
-- A `GroupedGraph` → Blender node-tree emitter: each wrapped region
-  becomes a GN node-group datablock; references become Group nodes.
-- `coding_nodes.runtime.modifier` implements the Expression Modifier:
-  text field, "Recompile", "View Graph", error display.
-- On expression change: debounced recompile, in-place GN group rebuild.
-- Parameter bindings survive recompiles when the signature is unchanged.
+**Headless layer ✅ (built + tested, no Blender):**
+- `backend/op_emitters.py`: emitter descriptor for every op the
+  frontend produces; coverage proven by `frontend_op_universe()` vs the
+  registry.
+- `backend/plan.py`: `build_plan` → `EmissionPlan` (groups, nodes,
+  instances, interfaces, links) — pure data, fully testable.
+- `backend/gn_executor.py`, `backend/modifier.py`, `blender_addon/`:
+  written with lazy `bpy`, import-clean, verified headlessly to import.
+- 22 M3 tests in `tests/m3_emit/`.
 
-**Done =** In Blender, the user adds the modifier, types the ripple
-example, scrubs the timeline, and the mesh responds. The curl-noise
-example shows a `curl` group containing twelve `n` sub-groups.
+**Blender layer (built, pending verification):**
+- `execute(plan)` builds the datablocks; the Expression Modifier
+  (text field, Recompile, inline errors) attaches it.
+- Verified via the **M3 Blender checklist** in `TESTING.md`
+  (3.1 register · 3.2 ripple · 3.3 errors · 3.4 curl-noise).
+
+**Done =** M3 Blender checklist 3.1–3.4 pass: the user types the
+ripple example, scrubs the timeline, the mesh responds; curl-noise
+shows a `curl` group containing twelve `n` sub-groups; soft-spot
+findings recorded for follow-up.
+
+Deferred to the M3 follow-up (after the checklist run): modifier
+output application mode (position offset / normal offset / custom),
+debounced auto-recompile, "View Graph" button, parameter-binding
+preservation across recompiles. These are polish on a working path.
 
 ### M4 — Expression Node Group (Shape B) (≈3–4 days)
 

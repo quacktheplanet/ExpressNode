@@ -108,23 +108,114 @@ PY
 You'll see the `curl` root with twelve `n#…` child regions and their
 input/output socket lists.
 
-## Milestone 3+ — GN op emitters & Expression Modifier **[Blender]**
+## Milestone 3 — Backend: emitters + plan (`tests/m3_emit/`)
 
-M1 and M2 are fully headless. The step that turns the grouped graph
-into actual Geometry Nodes — per-op emitters (`math.sin` → a Math node,
-`vec.combine3` → a Combine XYZ node, …) and the sub-group wrapping —
-requires Blender and is verified there:
+**What it proves headlessly:** every op the frontend can emit maps to a
+Blender node descriptor; the emission plan for the examples has the
+right groups, sub-groups, instances, interfaces, and links; the
+bpy-using modules import cleanly without Blender.
 
-1. Install the addon (instructions land with M3).
-2. Add the Expression modifier to a mesh.
-3. Paste `examples/ripple.py`; scrub the timeline; confirm the mesh
-   responds.
-4. Paste `examples/curl_noise.py`; open the generated node group;
-   confirm one `curl` group containing twelve `n` sub-groups, not a
-   wall of math nodes.
+| Test file | Verifies |
+|---|---|
+| `test_op_coverage.py` | Every frontend op (and every op the examples use) has a registered emitter; emitter kinds/bl_idnames are well-formed |
+| `test_emission_plan.py` | `ripple` plans to one root group; parameters surface; result is linked to the group output; every eval node is placed or intentionally interface/param-only |
+| `test_plan_groups.py` | `curl_noise` plans to a root + 12 `n` sub-groups, instantiated and wired through interfaces; inline threshold collapses helpers |
+| `test_import_safety.py` | `gn_executor`, `modifier`, the addon shell, and `pipeline` import with no `bpy` present |
 
-Until M3, the headless suite is the source of truth for correctness;
-the Blender step is the source of truth for the visual result.
+**M3 headless done-criterion:** `tests/m3_emit/` is green — proving the
+plan that the Blender executor will consume is complete and correctly
+shaped.
+
+Inspect the plan for an example:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+from coding_nodes import plan_source
+import json, pathlib
+src = pathlib.Path("coding-nodes/examples/curl_noise.py").read_text()
+print(json.dumps(plan_source(src, inline_threshold=2).describe(),
+                  indent=2, default=str))
+PY
+```
+
+## Milestone 3 — Blender verification **[Blender]** (the planned test)
+
+Everything above is headless. The remaining step runs the executor in
+Blender. Do these in order; each builds on the previous.
+
+### Setup
+
+1. Copy or symlink `coding-nodes/blender_addon/` into Blender's addons
+   folder (or "Install from Disk" pointing at it). It puts both
+   `coding_nodes` and `sacred_geometry` on `sys.path` automatically.
+2. Enable **"Coding Nodes — Expression Modifier"** in Preferences.
+
+### Test 3.1 — addon registers
+
+- Expected: no errors on enable. A **Coding Nodes Expression** panel
+  appears under Properties › Modifiers with a text field and a
+  *Recompile Expression* button.
+
+### Test 3.2 — ripple (no sub-groups, the golden path)
+
+1. Add a subdivided plane; keep it active.
+2. Paste `examples/ripple.py` into the panel text field.
+3. Click *Recompile Expression*.
+- Expected: a `CodingNodesExpression` Nodes modifier appears, its node
+  group is `Expr_ripple`, with `freq` and `amp` as modifier inputs.
+- Scrub the timeline → the plane ripples; the wave drifts with `t`.
+- Change `freq` to 12 → tighter waves on next recompile.
+- Open `Expr_ripple` in the Geometry Nodes editor → confirm a small
+  readable graph (Position → math chain → Combine XYZ → output), **not**
+  a wall of loose `Math` nodes.
+
+### Test 3.3 — compile errors surface, don't crash
+
+1. Type `def f(): return getattr(math,"sin")(P.x)`.
+2. Recompile.
+- Expected: the panel shows a red error box with the line, no crash,
+  the previous good modifier still intact.
+
+### Test 3.4 — curl-noise (sub-groups, the M2/M3 payoff)
+
+1. New subdivided icosphere (subdivisions ≈ 3).
+2. Paste `examples/curl_noise.py`; recompile.
+- Expected: node group `Expr_curl` containing **twelve `n_*` group
+  instances**, not ~180 loose math nodes.
+- Open one `n_1` group → confirm it has the `n` body (offset add →
+  Noise) with `in_0`/`in_1` inputs and one float output.
+- Scrub the timeline → the icosphere swirls organically.
+- Adjust `scale` / `strength` modifier inputs → visible change on
+  recompile.
+
+### What to watch for (known soft spots to record findings on)
+
+These are the parts the headless plan can't fully prove; note results
+in the PR/notes so we iterate:
+
+- **Complex emitters** (`flow.if`, `math.clamp/mix/smoothstep`,
+  `compare.eq/ne/le/ge`, `texture.noise` W-wiring, `attr.write`
+  geometry threading, `vec.swizzle` expansion, `*.floordiv`,
+  `vec.pow`). The descriptors are registered; the in-Blender wiring is
+  what 3.2–3.4 exercise. Note any that misbehave.
+- **Socket-name resolution** in the executor (`outputs.get(name)` vs
+  index). If a link silently drops, it's almost always a socket-name
+  mismatch for one bl_idname.
+- **Boundary threading** for nested helpers deeper than one level
+  (curl→n is one level and is covered; deeper nesting is plan-only
+  until a test case needs it).
+- **Modifier output application.** The root group currently outputs the
+  raw expression result. If the modifier should apply it as a position
+  offset / normal offset, that wrapping is the first follow-up after
+  3.4 passes.
+
+### Outcome
+
+When 3.1–3.4 pass, M3's done-criterion is met: *the user types an
+expression and sees the mesh respond, with a readable grouped node
+tree.* Record any soft-spot findings; they become the M3 follow-up /
+M5 polish list.
 
 ## Continuous checks
 
