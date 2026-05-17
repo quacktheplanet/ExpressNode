@@ -13,6 +13,9 @@ Milestones (see PLAN.md):
     M7  OSL backend (validate vs the oracle)                   [headless done;
                                                                 OSL-runtime
                                                                 checklist]
+    M8  GLSL/Eevee backend (validate vs the oracle)            [headless done;
+                                                                GLSL-runtime
+                                                                checklist]
 
 Public API:
     compile(source) -> CompiledExpression   Parse a Python expression.
@@ -27,7 +30,9 @@ from coding_nodes.grouping import GroupedGraph, GroupRegion, group
 from coding_nodes.backend import (
     EmissionPlan,
     build_plan,
+    emit_glsl,
     emit_osl,
+    glsl_source,
     osl_source,
     plan_source,
 )
@@ -44,6 +49,8 @@ __all__ = [
     "EmissionPlan",
     "osl_source",
     "emit_osl",
+    "glsl_source",
+    "emit_glsl",
 ]
 
 # The evaluator needs numpy — the only part of the package that does.
@@ -54,4 +61,4 @@ try:  # pragma: no cover - trivial import guard
 except ImportError:  # pragma: no cover
     pass
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"

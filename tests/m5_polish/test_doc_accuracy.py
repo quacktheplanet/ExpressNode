@@ -49,7 +49,8 @@ def test_backend_only_ops_are_registered_and_excluded_from_frontend():
 
 def test_key_docs_exist():
     for name in ("grouping.md", "emission.md", "evaluator.md", "osl.md",
-                 "expression-reference.md", "existing-alternatives.md"):
+                 "glsl.md", "expression-reference.md",
+                 "existing-alternatives.md"):
         assert (DOCS / name).exists(), f"missing docs/{name}"
     root = DOCS.parents[1]
     for name in ("ROADMAP.md",):

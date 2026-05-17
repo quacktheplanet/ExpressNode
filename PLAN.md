@@ -37,11 +37,11 @@ frontend, the grouping pass, and the user-facing shapes.
 
 Each milestone leaves a working, tested artifact.
 
-> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅ ·
-> M5 headless ✅ · **M6 ✅ (oracle)** · **M7 ✅ headless (OSL backend)**.
-> M3/M4/M5 Blender verification + M7 OSL-runtime parity pending
-> (checklists in `TESTING.md`); M6 has no runtime step.
-> Run `python3 -m pytest tests/` (242 headless tests, 2 oslc-skipped;
+> **Status:** M1–M5 headless ✅ · **M6 ✅ (oracle)** ·
+> **M7 ✅ headless (OSL)** · **M8 ✅ headless (GLSL/Eevee)**.
+> Blender/runtime parity checklists pending (`TESTING.md`); M6 has no
+> runtime step.
+> Run `python3 -m pytest tests/` (258 headless, 4 toolchain-skipped;
 > see `TESTING.md`). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
@@ -208,6 +208,28 @@ expression compiled to an Open Shading Language shader for Cycles.
 
 **Done =** `tests/m7_osl/` green; the OSL-runtime checklist confirms
 compile + oracle parity where the toolchain exists. See `docs/osl.md`.
+
+### M8 — GLSL / Eevee backend ✅ headless
+
+Second backend off ROADMAP §4b: the same expression as a GLSL fragment
+shader for real-time / Eevee shading.
+
+**Headless — built + tested:**
+- `backend/glsl.py`: SSA emitter (`emit_glsl`/`glsl_source`), per-op
+  GLSL template table, scalar→`vec3` promotion for vector arithmetic
+  (GLSL has no implicit promotion), uint32 reference noise that is
+  **bit-exact** with the M6 oracle.
+- 16 M8 tests: template coverage; structural validity (`#version`,
+  balanced braces/parens, SSA declared-before-use, scalar/vector
+  return, float-literal correctness, promotion, faithful ripple);
+  + 2 `glslangValidator` compile tests (auto-run when present).
+
+**GLSL-runtime checklist:** generated `.frag` compiles; numeric parity
+vs the oracle — exact for noise-free, **bit-exact for `noise()`/
+`voronoi()`** (uint32 parity, the strongest of any backend).
+
+**Done =** `tests/m8_glsl/` green; runtime checklist confirms compile +
+parity where the toolchain exists. See `docs/glsl.md`.
 
 ## Total estimated effort
 

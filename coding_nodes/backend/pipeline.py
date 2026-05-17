@@ -25,10 +25,15 @@ def plan_source(source: str, inline_threshold: int = 3,
 
 
 def osl_source(source: str, shader_name: str = "") -> str:
-    """Compile + emit an OSL shader. Pure, headless. Raises CompileError
-    on unsupported syntax."""
+    """Compile + emit an OSL shader. Pure, headless."""
     from coding_nodes.backend.osl import emit_osl
     return emit_osl(compile(source), shader_name=shader_name)
+
+
+def glsl_source(source: str, func_name: str = "") -> str:
+    """Compile + emit a GLSL fragment shader. Pure, headless."""
+    from coding_nodes.backend.glsl import emit_glsl
+    return emit_glsl(compile(source), func_name=func_name)
 
 
 def build_in_blender(source: str, inline_threshold: int = 3,

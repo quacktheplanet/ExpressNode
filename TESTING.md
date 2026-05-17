@@ -450,6 +450,55 @@ When `tests/m7_osl/` is green and the runtime checklist confirms
 compile + noise-free parity, M7 is done: the same expression is a
 correct Cycles shader, validated against the oracle.
 
+## Milestone 8 — GLSL / Eevee backend (`tests/m8_glsl/`)
+
+**Headless:** the same expression compiled to a GLSL fragment shader
+(`glsl_source(...)`) for real-time / Eevee shading.
+
+| Test file | Verifies |
+|---|---|
+| `test_glsl_coverage.py` | Every frontend op has a GLSL template (or is emitter-special-cased) |
+| `test_glsl_structure.py` | `#version`; balanced braces/parens; **SSA declared-before-use**; function + `main()`; scalar/vector return; float literals have a decimal point; scalar→`vec3` promotion present; uint32 noise lib only when used; faithful ripple chain; name override |
+| `test_glsl_compile.py` | Runs `glslangValidator` on the generated `.frag` **if on PATH**; skips cleanly otherwise |
+
+**M8 headless done-criterion:** `tests/m8_glsl/` green (16 tests; 2
+glslang tests skip without the toolchain).
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+from coding_nodes import glsl_source
+print(glsl_source(open("coding-nodes/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 8 — GLSL-runtime checklist **[glslangValidator / Eevee]**
+
+1. **Compile.** `glslangValidator shader.frag` succeeds for both
+   examples (the pytest does this automatically when on PATH).
+2. **Numeric parity, noise-free.** Run the shader over a grid; equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — exact (GLSL
+   stdlib == numpy IEEE).
+3. **Numeric parity, noise.** GLSL `uint` == numpy `uint32`, so
+   `noise()`/`voronoi()` are expected **bit-exact** with the oracle —
+   the strongest parity of any backend. Verify and record.
+4. **In Eevee (Blender).** Use the generated function in an Eevee
+   material/shader; confirm it drives the expected channel and
+   animates with `Time`.
+
+#### Soft spots to record
+
+- **uint32 bit-parity** in practice across the Python/GLSL grid (item
+  3) — expected exact; confirm.
+- **`attr.read`/`obj.read`** emit neutral defaults; wiring to shader
+  inputs/textures is the M8 follow-up.
+
+### Outcome
+
+When `tests/m8_glsl/` is green and the runtime checklist confirms
+compile + parity, M8 is done: one expression now targets geometry, the
+oracle, Cycles shading, and real-time GLSL shading — all from one IR.
+
 ## Continuous checks
 
 Run before every commit:
