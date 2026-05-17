@@ -37,11 +37,11 @@ frontend, the grouping pass, and the user-facing shapes.
 
 Each milestone leaves a working, tested artifact.
 
-> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ (Blender verification
-> pending — see the checklist in `TESTING.md`). Next: run the M3
-> Blender checklist, then M4.
-> Run `python3 -m pytest tests/` (115 headless tests; see `TESTING.md`
-> for the milestone-by-milestone path).
+> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅
+> (M3 & M4 Blender verification pending — checklists in `TESTING.md`).
+> Next: run the Blender checklists, then M5.
+> Run `python3 -m pytest tests/` (124 headless tests; see `TESTING.md`
+> for the milestone-by-milestone path). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
 
@@ -111,17 +111,29 @@ output application mode (position offset / normal offset / custom),
 debounced auto-recompile, "View Graph" button, parameter-binding
 preservation across recompiles. These are polish on a working path.
 
-### M4 — Expression Node Group (Shape B) (≈3–4 days)
+### M4 — Expression Node Group (Shape B)
 
-**Deliverables:**
-- `coding_nodes.runtime.node_group` registers a node group the user
-  can drop into any GN tree.
-- The node group's interior is managed by the same compiler.
-- Inputs and outputs are auto-derived from the expression signature.
+**Headless layer ✅ (built + tested):**
+- `backend/node_group.py`: an operator that compiles via the **same M3
+  pipeline** and inserts a `GeometryNodeGroup` into the active node
+  editor, plus a Coding Nodes N-panel. Lazy `bpy`, import-clean.
+- Addon shell wires both shapes (modifier + node group).
+- 9 M4 tests in `tests/m4_nodegroup/`: the Shape-B contract (root
+  group interface == params-in + Result-out, nothing interface/
+  param-only emitted, result wired, identical plan to Shape A), and
+  import safety.
 
-**Done =** In Blender, the user can drop the Expression Node Group
-into an existing GN tree, type an expression, and the node group's
-contents update.
+**Blender layer (built, pending verification):**
+- Verified via the **M4 Blender checklist** in `TESTING.md`
+  (4.1 panel · 4.2 drop into a tree · 4.3 same as Shape A · 4.4 errors).
+
+**Done =** M4 Blender checklist 4.1–4.4 pass: the user drops an
+expression into a GN tree as a group node, wires its `Result`, and it
+works — same compiler as the modifier, different delivery surface.
+
+Deferred to the M4 follow-up: in-place re-edit of a dropped group
+(re-point existing instances on recompile), 2D-cursor placement of the
+new node.
 
 ### M5 — Polish, examples, ship (≈1 week)
 

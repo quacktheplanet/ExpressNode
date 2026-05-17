@@ -29,9 +29,13 @@ for _p in (_CODING_NODES, _SACRED):
 def register():
     from coding_nodes.backend import modifier
     modifier.register()
+    from coding_nodes.backend import node_group
+    node_group.register()
 
 
 def unregister():
+    from coding_nodes.backend import node_group
+    node_group.unregister()
     from coding_nodes.backend import modifier
     modifier.unregister()
 

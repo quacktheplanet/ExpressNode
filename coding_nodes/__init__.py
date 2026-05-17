@@ -5,7 +5,8 @@ Milestones (see PLAN.md):
     M2  grouping: flat EvalGraph -> hierarchy of named regions [done]
     M3  backend: op emitters + EmissionPlan + executor         [headless done;
                                                                 Blender pending]
-    M4  Expression Node Group
+    M4  Expression Node Group (Shape B)                        [headless done;
+                                                                Blender pending]
     M5  polish, examples, ship
 
 Public API:
@@ -30,4 +31,4 @@ __all__ = [
     "build_plan",
     "EmissionPlan",
 ]
-__version__ = "0.3.0"
+__version__ = "0.4.0"

@@ -217,6 +217,70 @@ expression and sees the mesh respond, with a readable grouped node
 tree.* Record any soft-spot findings; they become the M3 follow-up /
 M5 polish list.
 
+## Milestone 4 — Expression Node Group, Shape B (`tests/m4_nodegroup/`)
+
+**What it proves headlessly:** Shape B reuses the M3 pipeline exactly,
+and the plan's root group is a clean, droppable group — interface is
+exactly the user parameters in plus a `Result` out, with no
+interface/param-only ops leaking inside. Same plan as Shape A, so the
+node tree is identical; the only difference is where it lands.
+
+| Test file | Verifies |
+|---|---|
+| `test_shape_b_contract.py` | Root group interface == params-in + Result-out; nothing interface/param-only emitted as a node; result wired; Shape A and Shape B share one plan; result type preserved |
+| `test_import_safety.py` | `node_group` and the two-shape addon import with no `bpy` |
+
+**M4 headless done-criterion:** `tests/m4_nodegroup/` is green.
+
+### Milestone 4 — Blender verification **[Blender]** (the planned test)
+
+Do these after the M3 checklist; Shape B sits on the same executor.
+
+#### Test 4.1 — operator + panel appear
+
+- In a Geometry Nodes editor, open the N-panel.
+- Expected: a **Coding Nodes** tab with a "Coding Nodes Expression
+  Group" panel: an expression text field and an *Add Expression Node
+  Group* button.
+
+#### Test 4.2 — drop a group into an existing tree
+
+1. Add a Geometry Nodes modifier to a mesh; open its tree.
+2. In the Coding Nodes panel, keep the default `offset` expression.
+3. Click *Add Expression Node Group*.
+- Expected: a Group node appears in the tree, labeled with the
+  generated group name, referencing the compiled `Expr_offset` tree
+  with `amp` as an input and a `Result` output.
+- Wire its `Result` into a Set Position offset; confirm the mesh
+  deforms and animates with the timeline.
+
+#### Test 4.3 — same compiler as Shape A
+
+1. Apply the same expression via the Expression *Modifier* (Shape A)
+   on another object.
+- Expected: visually identical result. (Same plan, same tree shape —
+  asserted headlessly by `test_shape_a_and_shape_b_share_one_plan`.)
+
+#### Test 4.4 — compile error in the panel
+
+1. Type a bad expression; click the button.
+- Expected: red error box in the panel, no node added, no crash.
+
+#### Soft spots to record
+
+- **In-place re-edit of a dropped group.** First cut creates a fresh
+  group datablock per add. Re-pointing every existing instance of a
+  group when its expression changes is the M4 follow-up; note the
+  desired UX after 4.2 works.
+- **2D-cursor placement.** The new node currently lands at origin;
+  placement polish is M5.
+
+### Outcome
+
+When 4.1–4.4 pass, M4's done-criterion is met: *the user drops an
+expression into any GN tree as a group node, edits it, and it works* —
+the same compiler as the modifier, a different delivery surface.
+
 ## Continuous checks
 
 Run before every commit:

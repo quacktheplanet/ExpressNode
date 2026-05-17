@@ -25,11 +25,12 @@ inside — not a wall of `Math (MULTIPLY)` nodes.
 
 ## Status
 
-M1 (frontend: Python → EvalGraph), M2 (grouping pass), and M3's
-headless layer (op emitters + emission plan + import-clean bpy
-executor/modifier/addon) are built and tested — **115 passing tests,
-no Blender required**. The M3 Blender verification is a planned,
-checklisted step (see `TESTING.md`).
+M1 (frontend), M2 (grouping), M3 (backend: op emitters + emission plan
++ Expression Modifier) and M4 (Expression Node Group, Shape B) headless
+layers are built and tested — **124 passing tests, no Blender
+required**. The M3/M4 Blender verification is a planned, checklisted
+step (see `TESTING.md`). The whole arc is mapped in
+[`../ROADMAP.md`](../ROADMAP.md).
 
 ```bash
 cd coding-nodes && python3 -m pytest tests/ -q
