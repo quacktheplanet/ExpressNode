@@ -37,10 +37,10 @@ frontend, the grouping pass, and the user-facing shapes.
 
 Each milestone leaves a working, tested artifact.
 
-> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅
-> (M3 & M4 Blender verification pending — checklists in `TESTING.md`).
-> Next: run the Blender checklists, then M5.
-> Run `python3 -m pytest tests/` (124 headless tests; see `TESTING.md`
+> **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅ ·
+> M5 headless ✅ (M3/M4/M5 Blender verification pending — checklists
+> in `TESTING.md`). The headless build of the M1→M5 path is complete.
+> Run `python3 -m pytest tests/` (195 headless tests; see `TESTING.md`
 > for the milestone-by-milestone path). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
@@ -135,18 +135,35 @@ Deferred to the M4 follow-up: in-place re-edit of a dropped group
 (re-point existing instances on recompile), 2D-cursor placement of the
 new node.
 
-### M5 — Polish, examples, ship (≈1 week)
+### M5 — Polish, ship
 
-**Deliverables:**
-- The two examples are documented step-by-step in `docs/examples/`.
-- The expression reference doc lists every supported construct.
-- Error messages have been triaged: each unsupported Python feature
-  gives a useful, specific error message.
-- Installable `.zip` builds and loads on Blender 4.x and 5.x.
-- README contains install + first-run instructions.
+**Headless layer ✅ (built + tested, 71 M5 tests):**
+- **Apply modes** (`backend/plan.py`): `raw` / `offset` / `absolute`.
+  The expression group is wrapped in a Geometry-in/out modifier group
+  so Shape A is a valid GN modifier — removes the biggest M3 soft spot.
+- **Parameter reconciliation** (`backend/params.py`): a pure function
+  that carries tuned values across a recompile when the signature is
+  stable; `changed_signature()` decides rebuild-vs-revalue.
+- **Error triage** (`tests/m5_polish/test_error_quality.py`): a
+  22-case matrix asserting every unsupported construct gives a clear,
+  located, hinted message.
+- **Doc-accuracy guard** (`test_doc_accuracy.py`): docs cannot drift —
+  every built-in must be documented; emitter coverage re-asserted.
+- **Addon packaging** (`tools/package_addon.py`): builds a
+  self-contained `coding_nodes_addon.zip` bundling both packages plus a
+  register shim; structure verified headlessly.
 
-**Done =** A first user can install the zip, follow the README, and
-have a working example in under 5 minutes.
+**Blender layer (built, pending verification):**
+- Verified via the **M5 Blender checklist** in `TESTING.md`
+  (5.1 install zip · 5.2 apply modes · 5.3 param survival · 5.4 errors).
+
+**Done =** M5 checklist 5.1–5.4 pass: a first user installs the zip,
+follows the README, and has a working example fast.
+
+**M5 follow-up (after the checklist):** apply-mode dropdown in the
+modifier UI, `normal` mode, debounced auto-recompile, "View Graph"
+button, dropped-group in-place re-edit, step-by-step example docs
+refresh.
 
 ## Total estimated effort
 

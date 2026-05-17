@@ -281,6 +281,82 @@ When 4.1–4.4 pass, M4's done-criterion is met: *the user drops an
 expression into any GN tree as a group node, edits it, and it works* —
 the same compiler as the modifier, a different delivery surface.
 
+## Milestone 5 — Polish (`tests/m5_polish/`)
+
+**What it proves headlessly:** the expression group can be wrapped for
+real modifier use (Geometry in/out apply modes); tuned parameter values
+survive a recompile; every unsupported construct fails with a clear,
+located, hinted message; the docs cannot drift from the implementation;
+the addon packages into a structurally valid, self-contained zip.
+
+| Test file | Verifies |
+|---|---|
+| `test_apply_modes.py` | `raw` / `offset` / `absolute`; the wrapper is a Geometry-in/out group instantiating the expression group; params still exposed |
+| `test_param_reconcile.py` | Values kept on stable signature; new→default; removed→dropped; type-change→reset; signature-change detection |
+| `test_error_quality.py` | A 22-case matrix: each unsupported construct → expected message; errors are located; `str()` renders line+caret; unknown-name hints builtins |
+| `test_doc_accuracy.py` | Every built-in is in `expression-reference.md`; emitter registry covers the frontend universe; backend-only ops excluded; key docs exist |
+| `test_packaging.py` | `tools/package_addon.py` builds a zip bundling both packages + a register shim, no `__pycache__`, idempotent |
+
+**M5 headless done-criterion:** `tests/m5_polish/` is green (71 tests).
+
+Build the installable addon:
+
+```bash
+cd coding-nodes && python3 tools/package_addon.py dist
+# -> dist/coding_nodes_addon.zip
+```
+
+### Milestone 5 — Blender verification **[Blender]** (the planned test)
+
+Run after the M3/M4 checklists.
+
+#### Test 5.1 — install the packaged zip
+
+1. `python3 tools/package_addon.py dist`.
+2. Blender › Preferences › Add-ons › Install from Disk →
+   `dist/coding_nodes_addon.zip`; enable it.
+- Expected: enables with no errors; both the Modifier panel (Shape A)
+  and the Node Editor "Coding Nodes" tab (Shape B) appear. No external
+  `sys.path` setup needed — the libs are bundled.
+
+#### Test 5.2 — apply modes (Shape A)
+
+1. Expression Modifier on a plane, `examples/ripple.py`.
+- Expected (mode `offset`, the modifier default): the modifier tree has
+  **Geometry in → Set Position → Geometry out**, the expression group
+  instanced between, `freq`/`amp` as modifier inputs; the plane ripples.
+- Switch to `absolute` (when the mode selector lands in the M5
+  follow-up): the Result drives absolute position instead of an offset.
+
+#### Test 5.3 — parameter values survive a recompile
+
+1. Set `freq` to 12 on the modifier.
+2. Edit the body (keep `freq`/`amp`); Recompile.
+- Expected: `freq` stays 12 (reconcile kept it — the signature was
+  unchanged). Rename `freq`→`f` and recompile → `f` appears at its
+  default (renamed = new parameter).
+
+#### Test 5.4 — error messages read well in-panel
+
+- Trigger several cases from the `test_error_quality.py` matrix; confirm
+  the panel shows the message + the offending line, no crash.
+
+#### Soft spots to record
+
+- **`absolute` mode UI.** The plan supports `raw`/`offset`/`absolute`;
+  the modifier currently hardcodes `offset`. A mode dropdown is the M5
+  follow-up.
+- **`normal` mode.** Scalar-Result-along-normal is intentionally not in
+  `APPLY_MODES` yet (type handling); add when a case needs it.
+- **Reconcile wiring.** `reconcile()` is unit-proven; confirm the
+  modifier actually calls it across a rebuild and re-applies values.
+
+### Outcome
+
+When 5.1–5.4 pass, the product is shippable: installable in one zip,
+two working shapes, values that survive edits, and errors that explain
+themselves. Remaining items become the M5 follow-up list.
+
 ## Continuous checks
 
 Run before every commit:

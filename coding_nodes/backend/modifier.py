@@ -26,7 +26,9 @@ def _apply(obj, source: str) -> str:
     from coding_nodes.backend.pipeline import build_in_blender
 
     try:
-        tree = build_in_blender(source)
+        # A modifier needs a Geometry-in/out tree; "offset" wraps the
+        # expression group and applies Result as a Set Position offset.
+        tree = build_in_blender(source, apply_mode="offset")
     except CompileError as e:
         return str(e)
     except Exception as e:  # surface, don't crash the UI

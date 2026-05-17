@@ -7,7 +7,8 @@ Milestones (see PLAN.md):
                                                                 Blender pending]
     M4  Expression Node Group (Shape B)                        [headless done;
                                                                 Blender pending]
-    M5  polish, examples, ship
+    M5  polish: apply modes, param reconcile, packaging        [headless done;
+                                                                Blender pending]
 
 Public API:
     compile(source) -> CompiledExpression   Parse a Python expression.
@@ -31,4 +32,4 @@ __all__ = [
     "build_plan",
     "EmissionPlan",
 ]
-__version__ = "0.4.0"
+__version__ = "0.5.0"

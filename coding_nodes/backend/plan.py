@@ -96,13 +96,25 @@ class EmissionPlan:
     groups: dict[str, GroupDef]
     root_name: str
     parameters: list[tuple[str, str, Any]] = _dc_field(default_factory=list)
+    # When an apply mode wraps the expression group for use as a modifier,
+    # this names the Geometry-in/Geometry-out wrapper group. None for the
+    # raw expression group (Shape B drops the raw group directly).
+    modifier_root_name: str | None = None
+    apply_mode: str = "raw"
 
     def describe(self) -> dict:
         return {
             "root": self.root_name,
+            "modifier_root": self.modifier_root_name,
+            "apply_mode": self.apply_mode,
             "parameters": self.parameters,
             "groups": {n: g.describe() for n, g in self.groups.items()},
         }
+
+    def deliverable_root(self) -> str:
+        """The group to attach/drop: the modifier wrapper if present
+        (Shape A), else the raw expression group (Shape B)."""
+        return self.modifier_root_name or self.root_name
 
 
 # ---------------------------------------------------------------------------
@@ -346,14 +358,90 @@ class _Planner:
                 ))
 
 
+APPLY_MODES = ("raw", "offset", "absolute")
+
+
+def _add_modifier_wrapper(plan: EmissionPlan, compiled: CompiledExpression,
+                          apply_mode: str) -> EmissionPlan:
+    """Wrap the raw expression group in a Geometry-in/Geometry-out group
+    so it works as a Geometry Nodes modifier.
+
+    raw       no wrapper (Shape B drops the raw group directly)
+    offset    Set Position, Offset = expression Result (vec3)
+    absolute  Set Position, Position = expression Result (vec3)
+    """
+    if apply_mode == "raw":
+        plan.apply_mode = "raw"
+        return plan
+
+    expr = plan.groups[plan.root_name]
+    wrapper_name = f"Modifier_{plan.root_name}"
+    w = GroupDef(name=wrapper_name, region_path=(), is_root=False)
+    w.inputs.append(("Geometry", "geometry"))
+    for pname, ptype in expr.inputs:
+        w.inputs.append((pname, ptype))
+    w.outputs.append(("Geometry", "geometry"))
+
+    inst = GroupInstance(instance_id=0, group_name=plan.root_name,
+                         region_path=())
+    w.instances.append(inst)
+
+    sp = PlannedNode(
+        local_id=0, eval_id=-1, op="modifier.set_position",
+        bl_idname="GeometryNodeSetPosition", settings={},
+        params={"mode": apply_mode}, output_socket="Geometry",
+        emitter_kind="complex",
+    )
+    w.nodes.append(sp)
+
+    # Geometry in -> Set Position geometry
+    w.links.append(PlannedLink(
+        Endpoint("group_input", None, "Geometry"),
+        Endpoint("node", 0, "Geometry"),
+    ))
+    # parameters -> expression instance
+    for pname, _ in expr.inputs:
+        w.links.append(PlannedLink(
+            Endpoint("group_input", None, pname),
+            Endpoint("instance", 0, pname),
+        ))
+    # expression Result -> Set Position (Offset or Position)
+    sp_in = "Offset" if apply_mode == "offset" else "Position"
+    w.links.append(PlannedLink(
+        Endpoint("instance", 0, "Result"),
+        Endpoint("node", 0, sp_in),
+    ))
+    # Set Position geometry -> Geometry out
+    w.links.append(PlannedLink(
+        Endpoint("node", 0, "Geometry"),
+        Endpoint("group_output", None, "Geometry"),
+    ))
+
+    plan.groups[wrapper_name] = w
+    plan.modifier_root_name = wrapper_name
+    plan.apply_mode = apply_mode
+    return plan
+
+
 def build_plan(compiled: CompiledExpression,
                 grouped: GroupedGraph | None = None,
-                inline_threshold: int = 3) -> EmissionPlan:
+                inline_threshold: int = 3,
+                apply_mode: str = "raw") -> EmissionPlan:
     """Plan the Blender node tree for a compiled expression.
 
     `grouped` may be supplied to reuse a GroupedGraph; otherwise it is
     computed with `inline_threshold`.
+
+    `apply_mode` controls the modifier wrapper:
+        raw       expression group only (Shape B default)
+        offset    wrap so Result becomes a Set Position offset (Shape A)
+        absolute  wrap so Result becomes the absolute Set Position
     """
+    if apply_mode not in APPLY_MODES:
+        raise ValueError(
+            f"unknown apply_mode {apply_mode!r}; one of {APPLY_MODES}"
+        )
     if grouped is None:
         grouped = group(compiled, inline_threshold=inline_threshold)
-    return _Planner(compiled, grouped).build()
+    plan = _Planner(compiled, grouped).build()
+    return _add_modifier_wrapper(plan, compiled, apply_mode)

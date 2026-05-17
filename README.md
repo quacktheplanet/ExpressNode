@@ -25,16 +25,39 @@ inside — not a wall of `Math (MULTIPLY)` nodes.
 
 ## Status
 
-M1 (frontend), M2 (grouping), M3 (backend: op emitters + emission plan
-+ Expression Modifier) and M4 (Expression Node Group, Shape B) headless
-layers are built and tested — **124 passing tests, no Blender
-required**. The M3/M4 Blender verification is a planned, checklisted
-step (see `TESTING.md`). The whole arc is mapped in
+The full **M1–M5 headless build is complete** — frontend, grouping,
+backend (op emitters + emission plan + executor), both user-facing
+shapes (modifier + node group), apply modes, parameter reconciliation,
+error triage, doc guard, and addon packaging. **195 passing tests, no
+Blender required.** The M3/M4/M5 Blender verification is a planned,
+checklisted step (see `TESTING.md`). The whole arc is mapped in
 [`../ROADMAP.md`](../ROADMAP.md).
 
 ```bash
-cd coding-nodes && python3 -m pytest tests/ -q
+cd coding-nodes && python3 -m pytest tests/ -q          # 195 tests
+python3 tools/package_addon.py dist                     # build the zip
 ```
+
+## Install (Blender)
+
+1. `python3 tools/package_addon.py dist` → `dist/coding_nodes_addon.zip`
+   (bundles both packages; no manual `sys.path` setup needed).
+2. Blender › Preferences › Add-ons › **Install from Disk** → pick the
+   zip → enable **"Coding Nodes — Expression"**.
+3. **Shape A (modifier):** select a mesh → Properties › Modifiers ›
+   *Coding Nodes Expression* panel → paste an expression → *Recompile*.
+4. **Shape B (node group):** open a Geometry Nodes editor → N-panel ›
+   *Coding Nodes* tab → *Add Expression Node Group*.
+
+First expression to try (`examples/ripple.py`):
+
+```python
+def ripple(P, t, freq=6.0, amp=0.3):
+    return vec3(0.0, 0.0, sin(P.x * freq + t) * amp)
+```
+
+Add it as a modifier on a subdivided plane, scrub the timeline — the
+plane ripples. Full verification steps: `TESTING.md`.
 
 Read order:
 

@@ -189,6 +189,15 @@ _reg(OpEmitter("attr.write", "GeometryNodeStoreNamedAttribute",
 _reg(OpEmitter("obj.read", "GeometryNodeObjectInfo", output="Location",
                kind="complex", note="object + field from params"))
 
+# --- modifier wrapper (backend-only; not frontend-emittable) ---
+_reg(OpEmitter("modifier.set_position", "GeometryNodeSetPosition",
+               output="Geometry", kind="complex",
+               note="apply-mode wrapper: Offset or Position from Result"))
+
+# Ops the backend adds for the modifier wrapper, never produced by the
+# frontend. Kept separate so the frontend-coverage test stays exact.
+BACKEND_ONLY_OPS = frozenset({"modifier.set_position"})
+
 
 # ---------------------------------------------------------------------------
 # Coverage helpers

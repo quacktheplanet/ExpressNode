@@ -147,6 +147,9 @@ def _build_complex(tree, pn: PlannedNode):
     if op.startswith("vec.component."):
         return tree.nodes.new("ShaderNodeSeparateXYZ")
 
+    if op == "modifier.set_position":
+        return tree.nodes.new("GeometryNodeSetPosition")
+
     if op == "vec.swizzle":
         # Expansion (Separate -> Combine per pattern) is created by the
         # caller via _build_swizzle; placeholder kept for completeness.
@@ -245,4 +248,4 @@ def execute(plan: EmissionPlan):
             if s is not None and d is not None:
                 tree.links.new(s, d)
 
-    return trees[plan.root_name]
+    return trees[plan.deliverable_root()]
