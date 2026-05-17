@@ -37,7 +37,11 @@ frontend, the grouping pass, and the user-facing shapes.
 
 Each milestone leaves a working, tested artifact.
 
-### M1 — Frontend parses the supported subset (≈1 week)
+> **Status:** M1 ✅ done. M2 ✅ done. Next up: M3.
+> Run `python3 -m pytest tests/` (see `TESTING.md` for the
+> milestone-by-milestone verification path).
+
+### M1 — Frontend parses the supported subset (≈1 week) ✅
 
 **Deliverables:**
 - `coding_nodes.frontend.parser` accepts a Python expression and returns
@@ -53,31 +57,46 @@ Each milestone leaves a working, tested artifact.
 `examples/curl_noise.py`, the parser produces a valid EvalGraph and
 the unit tests pass.
 
-### M2 — Group-wrapping pass (≈1 week)
+### M2 — Group-wrapping pass (≈1 week) ✅
 
 **Deliverables:**
-- `coding_nodes.grouping.group_pass` walks an EvalGraph annotated with
-  `function_scope` metadata and produces a hierarchical graph where
-  each user-defined function becomes a sub-group.
-- The GN backend emitter (in `sacred_geometry/compiler/gn_backend.py`)
-  gains support for emitting GN sub-groups for function nodes.
-- Trivial one-line functions inline; non-trivial ones become groups.
-- Headless tests verify the resulting structure matches expectations.
+- `coding_nodes.grouping.group_pass` reconstructs the call tree from
+  per-node scope paths and produces a `GroupedGraph`: a hierarchy of
+  named regions over the flat EvalGraph.
+- Boundary computation: edges (and graph outputs) crossing a region
+  become deduplicated input/output sockets.
+- Inline heuristic: small regions stay flattened; threshold configurable.
+- Headless tests verify the region tree, boundaries, and the
+  inline heuristic.
 
-**Done =** Compiling `examples/curl_noise.py` produces a top-level GN
-tree with a `curl_noise` sub-group, not a flat sea of math nodes.
+**Done =** Compiling `examples/curl_noise.py` groups into a `curl` root
+with twelve `n` sub-regions — not a flat sea of nodes. Verified by
+`tests/m2_grouping/test_examples_grouped.py`.
 
-### M3 — Expression Modifier (Shape A) (≈1 week)
+Scope note: M2 delivers and headlessly tests the **grouping plan** (the
+`GroupedGraph` the backend will consume). Turning that plan into an
+actual Blender node tree needs per-op GN emitters (`math.sin` → a Math
+node, `vec.combine3` → a Combine XYZ node, …) plus the sub-group
+wrapping, all of which require `bpy`. That emission work moves into M3,
+where it is verified in Blender. This keeps M1/M2 fully headless and
+CI-friendly; see `TESTING.md`.
+
+### M3 — GN op emitters + Expression Modifier (Shape A) (≈1–1.5 weeks)
 
 **Deliverables:**
-- `coding_nodes.runtime.modifier` implements the Expression Modifier.
-- Modifier panel UI with: text field for the expression, "Recompile"
-  button, "View Graph" button, error display.
+- GN emitters for every op the frontend produces (`input.*`, `math.*`,
+  `vec.*`, `texture.*`, `compare.*`, `bool.*`, `flow.if`, `attr.*`,
+  `obj.*`, `constant.*`).
+- A `GroupedGraph` → Blender node-tree emitter: each wrapped region
+  becomes a GN node-group datablock; references become Group nodes.
+- `coding_nodes.runtime.modifier` implements the Expression Modifier:
+  text field, "Recompile", "View Graph", error display.
 - On expression change: debounced recompile, in-place GN group rebuild.
 - Parameter bindings survive recompiles when the signature is unchanged.
 
-**Done =** In Blender, the user can add the modifier, type the ripple
-example, scrub the timeline, and see the mesh respond.
+**Done =** In Blender, the user adds the modifier, types the ripple
+example, scrubs the timeline, and the mesh responds. The curl-noise
+example shows a `curl` group containing twelve `n` sub-groups.
 
 ### M4 — Expression Node Group (Shape B) (≈3–4 days)
 

@@ -25,16 +25,24 @@ inside — not a wall of `Math (MULTIPLY)` nodes.
 
 ## Status
 
-Specification + build plan complete. Implementation queued.
+M1 (frontend: Python → EvalGraph) and M2 (grouping pass) are built and
+tested headlessly — 93 passing tests, no Blender required. Next: M3
+(GN op emitters + Expression Modifier).
+
+```bash
+cd coding-nodes && python3 -m pytest tests/ -q
+```
 
 Read order:
 
 1. `SCOPE.md` — vision, audience, success criteria.
 2. `SPEC.md` — architecture: compiler pipeline, Python subset, GN
    emission strategy, the two user-facing shapes.
-3. `PLAN.md` — concrete build milestones.
-4. `docs/expression-reference.md` — the supported Python surface.
-5. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
+3. `PLAN.md` — concrete build milestones and current status.
+4. `TESTING.md` — milestone-by-milestone verification path.
+5. `docs/grouping.md` — the M2 grouping-pass design.
+6. `docs/expression-reference.md` — the supported Python surface.
+7. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
    comparison.
 6. `docs/examples/` — two worked examples.
 

@@ -64,8 +64,12 @@ class CompiledExpression:
     parameters: list[Parameter] = _dc_field(default_factory=list)
     return_type: TypeKind | None = None
     # Map function name -> list of EvalNode ids belonging to that function
-    # call's body. Used by the M2 grouping pass.
+    # (across all call instances). Kept for convenience / quick checks.
     function_scopes: dict[str, list[int]] = _dc_field(default_factory=dict)
+    # Map node id -> its scope path, a tuple of frame ids like
+    # ("curl#0", "n#3"). The M2 grouping pass uses this to reconstruct the
+    # call tree and wrap each call instance as its own sub-group.
+    scope_paths: dict[int, tuple[str, ...]] = _dc_field(default_factory=dict)
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -114,9 +118,12 @@ class ExpressionParser:
         self.parameters: list[Parameter] = []
         self.return_type: TypeKind | None = None
         self.function_scopes: dict[str, list[int]] = {}
-        # Track which function we're currently inlining, to annotate emitted
-        # nodes with their source-function for M2.
-        self._inline_stack: list[str] = []
+        self.scope_paths: dict[int, tuple[str, ...]] = {}
+        # Stack of frame ids like "curl#0". Each function entry (the entry
+        # function or an inlined call) pushes a uniquely-numbered frame so
+        # the grouping pass can tell call instances apart.
+        self._scope_stack: list[str] = []
+        self._scope_counter: int = 0
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -158,6 +165,7 @@ class ExpressionParser:
             parameters=self.parameters,
             return_type=self.return_type,
             function_scopes=self.function_scopes,
+            scope_paths=self.scope_paths,
         )
 
     # ------------------------------------------------------------------
@@ -287,7 +295,9 @@ class ExpressionParser:
 
         # Walk the body.
         self.function_scopes.setdefault(fn.name, [])
-        self._inline_stack.append(fn.name)
+        frame_id = f"{fn.name}#{self._scope_counter}"
+        self._scope_counter += 1
+        self._scope_stack.append(frame_id)
         try:
             return_value: ExprValue | None = None
             for stmt in fn.body:
@@ -334,7 +344,7 @@ class ExpressionParser:
                     )
             return return_value
         finally:
-            self._inline_stack.pop()
+            self._scope_stack.pop()
 
     def _extract_default(self, fn: ast.FunctionDef, pname: str) -> Any | None:
         """Return the literal default for `pname`, if any."""
@@ -410,9 +420,13 @@ class ExpressionParser:
             input_sockets=input_sockets,
             output_sockets=output_sockets,
         )
-        if self._inline_stack:
-            self.function_scopes[self._inline_stack[-1]].append(node.id)
-            node.params["__function_scope__"] = self._inline_stack[-1]
+        if self._scope_stack:
+            path = tuple(self._scope_stack)
+            node.params["__scope_path__"] = path
+            self.scope_paths[node.id] = path
+            fn_name = self._scope_stack[-1].rsplit("#", 1)[0]
+            self.function_scopes.setdefault(fn_name, []).append(node.id)
+            node.params["__function_scope__"] = fn_name
         return node
 
     # --- literals ---

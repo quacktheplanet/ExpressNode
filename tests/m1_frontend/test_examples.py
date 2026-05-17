@@ -6,7 +6,7 @@ from pathlib import Path
 from coding_nodes import compile
 
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 
 
 def _read(name: str) -> str:
