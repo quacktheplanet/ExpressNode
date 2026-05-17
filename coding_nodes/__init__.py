@@ -16,6 +16,9 @@ Milestones (see PLAN.md):
     M8  GLSL/Eevee backend (validate vs the oracle)            [headless done;
                                                                 GLSL-runtime
                                                                 checklist]
+    M9  WGSL GPU compute backend (validate vs the oracle)      [headless done;
+                                                                GPU-runtime
+                                                                checklist]
 
 Public API:
     compile(source) -> CompiledExpression   Parse a Python expression.
@@ -32,9 +35,11 @@ from coding_nodes.backend import (
     build_plan,
     emit_glsl,
     emit_osl,
+    emit_wgsl,
     glsl_source,
     osl_source,
     plan_source,
+    wgsl_source,
 )
 
 __all__ = [
@@ -51,6 +56,8 @@ __all__ = [
     "emit_osl",
     "glsl_source",
     "emit_glsl",
+    "wgsl_source",
+    "emit_wgsl",
 ]
 
 # The evaluator needs numpy — the only part of the package that does.
@@ -61,4 +68,4 @@ try:  # pragma: no cover - trivial import guard
 except ImportError:  # pragma: no cover
     pass
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"

@@ -31,20 +31,22 @@ shapes (modifier + node group), apply modes, parameter reconciliation,
 error triage, doc guard, addon packaging, the **numpy reference
 evaluator (M6)** that *proves the math is correct* (ripple matches
 hand-written numpy to 0.0 error) and is the oracle, and the **OSL
-backend (M7)** and the **GLSL/Eevee backend (M8)** — the same
-expression compiled to a Cycles shader and a real-time GLSL shader,
-both validated structurally against the oracle (GLSL's `uint`
-noise is bit-exact with it). **258 passing tests (4 toolchain-skipped),
-no Blender required.** The M3/M4/M5 Blender verification and the
-M7/M8 runtime parity checks are planned, checklisted steps (see
+backend (M7)**, the **GLSL/Eevee backend (M8)**, and the **WGSL GPU
+compute backend (M9)** — the same expression compiled to a Cycles
+shader, a real-time GLSL shader, and a parallel GPU kernel, all
+validated structurally against the oracle (GLSL/WGSL `uint` noise is
+bit-exact with it). **275 passing tests (6 toolchain-skipped), no
+Blender required.** The M3/M4/M5 Blender verification and the
+M7/M8/M9 runtime parity checks are planned, checklisted steps (see
 `TESTING.md`); M6 has no runtime step. The whole arc is mapped in
 [`../ROADMAP.md`](../ROADMAP.md).
 
 One expression now targets **geometry (GN), correctness (numpy oracle),
-Cycles shading (OSL), and real-time shading (GLSL)** from one IR.
+Cycles shading (OSL), real-time shading (GLSL), and GPU compute
+(WGSL)** — all from one IR.
 
 ```bash
-cd coding-nodes && python3 -m pytest tests/ -q          # 258 tests
+cd coding-nodes && python3 -m pytest tests/ -q          # 275 tests
 python3 tools/package_addon.py dist                     # build the zip
 ```
 
@@ -81,10 +83,11 @@ Read order:
 7. `docs/evaluator.md` — the M6 numpy oracle + reference noise spec.
 8. `docs/osl.md` — the M7 OSL backend.
 9. `docs/glsl.md` — the M8 GLSL/Eevee backend.
-10. `docs/expression-reference.md` — the supported Python surface.
-11. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
+10. `docs/gpu.md` — the M9 WGSL GPU compute backend.
+11. `docs/expression-reference.md` — the supported Python surface.
+12. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
     comparison.
-12. `docs/examples/` — two worked examples.
+13. `docs/examples/` — two worked examples.
 
 ## Relationship to the other projects in this repo
 

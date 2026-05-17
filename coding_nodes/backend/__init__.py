@@ -6,6 +6,7 @@ Headless, testable:
     pipeline      plan_source(source) -> EmissionPlan
     osl           emit_osl(compiled) -> OSL shader source
     glsl          emit_glsl(compiled) -> GLSL fragment shader source
+    wgsl          emit_wgsl(compiled) -> WGSL compute shader source
 
 Requires Blender:
     gn_executor   execute(plan) -> bpy NodeTree
@@ -23,9 +24,15 @@ from coding_nodes.backend.plan import (
     GroupDef,
     build_plan,
 )
-from coding_nodes.backend.pipeline import glsl_source, osl_source, plan_source
+from coding_nodes.backend.pipeline import (
+    glsl_source,
+    osl_source,
+    plan_source,
+    wgsl_source,
+)
 from coding_nodes.backend.osl import emit_osl, osl_template_ops
 from coding_nodes.backend.glsl import emit_glsl, glsl_template_ops
+from coding_nodes.backend.wgsl import emit_wgsl, wgsl_template_ops
 
 __all__ = [
     "OpEmitter",
@@ -42,4 +49,7 @@ __all__ = [
     "glsl_source",
     "emit_glsl",
     "glsl_template_ops",
+    "wgsl_source",
+    "emit_wgsl",
+    "wgsl_template_ops",
 ]

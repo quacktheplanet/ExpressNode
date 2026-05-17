@@ -36,6 +36,12 @@ def glsl_source(source: str, func_name: str = "") -> str:
     return emit_glsl(compile(source), func_name=func_name)
 
 
+def wgsl_source(source: str, fn_name: str = "") -> str:
+    """Compile + emit a WGSL compute shader. Pure, headless."""
+    from coding_nodes.backend.wgsl import emit_wgsl
+    return emit_wgsl(compile(source), fn_name=fn_name)
+
+
 def build_in_blender(source: str, inline_threshold: int = 3,
                      apply_mode: str = "raw"):
     """Compile + group + plan + execute. Requires Blender. Returns the

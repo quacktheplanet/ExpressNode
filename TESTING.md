@@ -499,6 +499,58 @@ When `tests/m8_glsl/` is green and the runtime checklist confirms
 compile + parity, M8 is done: one expression now targets geometry, the
 oracle, Cycles shading, and real-time GLSL shading — all from one IR.
 
+## Milestone 9 — WGSL GPU compute backend (`tests/m9_gpu/`)
+
+**Headless:** the same expression compiled to a WGSL compute kernel
+(`wgsl_source(...)`) — one GPU invocation per point over flat
+`array<f32>` buffers. The "fast at scale" tier.
+
+| Test file | Verifies |
+|---|---|
+| `test_wgsl_coverage.py` | Every frontend op has a WGSL template (or is emitter-special-cased) |
+| `test_wgsl_structure.py` | Kernel fn + storage/uniform bindings + `@compute` entry + bounds check; balanced braces/parens; **SSA declared-before-use**; scalar (pad) vs vector result writes; scalar→`vec3<f32>` promotion; floored `mod`; uint32 noise (`bitcast<u32>`) only when used; faithful ripple; name override |
+| `test_wgsl_compile.py` | Validates with `naga` or `tint` **if on PATH**; skips cleanly otherwise |
+
+**M9 headless done-criterion:** `tests/m9_gpu/` green (17 tests; 2
+validator tests skip without naga/tint).
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+from coding_nodes import wgsl_source
+print(wgsl_source(open("coding-nodes/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 9 — GPU-runtime checklist **[naga / tint / wgpu]**
+
+1. **Validate.** `naga shader.wgsl` (or `tint`) succeeds for both
+   examples (the pytest does this when on PATH).
+2. **Numeric parity, noise-free.** Dispatch the kernel via wgpu over a
+   grid of N points; the `out_R` buffer equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — exact.
+3. **Numeric parity, noise.** WGSL `u32` == numpy `uint32` with
+   `bitcast<u32>` matching `astype(uint32)`, so `noise()`/`voronoi()`
+   are expected **bit-exact** with the oracle. Verify and record.
+4. **Scale.** Dispatch over 1M points; confirm it runs as a single
+   GPU pass (the "fast at scale" demonstration). No Blender needed.
+
+#### Soft spots to record
+
+- **uint32 bit-parity** Python↔WGSL across the grid (item 3) —
+  expected exact; confirm.
+- **Buffer/uniform binding layout** for a real wgpu harness (the
+  emitter fixes a flat-f32 layout; document the host-side packing).
+- **`attr.read`/`obj.read`** neutral defaults; input-buffer wiring is
+  the M9 follow-up.
+
+### Outcome
+
+When `tests/m9_gpu/` is green and the runtime checklist confirms
+validate + parity, M9 is done: one expression now targets geometry,
+the oracle, Cycles (OSL), real-time (GLSL), and GPU compute (WGSL) —
+all from one IR. The §4b backend-breadth trajectory is built.
+
 ## Continuous checks
 
 Run before every commit:

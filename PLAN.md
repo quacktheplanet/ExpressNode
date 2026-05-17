@@ -38,10 +38,11 @@ frontend, the grouping pass, and the user-facing shapes.
 Each milestone leaves a working, tested artifact.
 
 > **Status:** M1–M5 headless ✅ · **M6 ✅ (oracle)** ·
-> **M7 ✅ headless (OSL)** · **M8 ✅ headless (GLSL/Eevee)**.
+> **M7 ✅ (OSL)** · **M8 ✅ (GLSL/Eevee)** ·
+> **M9 ✅ (WGSL GPU compute)** — all headless.
 > Blender/runtime parity checklists pending (`TESTING.md`); M6 has no
 > runtime step.
-> Run `python3 -m pytest tests/` (258 headless, 4 toolchain-skipped;
+> Run `python3 -m pytest tests/` (275 headless, 6 toolchain-skipped;
 > see `TESTING.md`). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
@@ -230,6 +231,30 @@ vs the oracle — exact for noise-free, **bit-exact for `noise()`/
 
 **Done =** `tests/m8_glsl/` green; runtime checklist confirms compile +
 parity where the toolchain exists. See `docs/glsl.md`.
+
+### M9 — WGSL GPU compute backend ✅ headless
+
+Third backend off ROADMAP §4b and the "fast at scale" tier: the same
+expression as a WGSL compute kernel — one GPU invocation per point over
+flat `array<f32>` buffers.
+
+**Headless — built + tested:**
+- `backend/wgsl.py`: SSA kernel emitter (`emit_wgsl`/`wgsl_source`),
+  per-op WGSL templates, scalar→`vec3<f32>` promotion, flat-buffer
+  layout (sidesteps vec3 stride), Uniforms struct, `@compute` entry
+  with bounds check. `round` matches numpy round-half-to-even; floored
+  `mod`; `bitcast<u32>` for bit-exact uint32 noise vs the oracle.
+- 17 M9 tests: template coverage; structural validity (kernel +
+  bindings + `@compute`, balanced, SSA, scalar/vector write,
+  promotion, floored mod, faithful ripple); + 2 `naga`/`tint`
+  validate tests (auto-run when present).
+
+**GPU-runtime checklist:** WGSL validates (`naga`/`tint`); standalone
+wgpu dispatch over a grid equals the oracle — exact for noise-free,
+bit-exact for noise. No Blender required.
+
+**Done =** `tests/m9_gpu/` green; runtime checklist confirms validate +
+parity where the toolchain exists. See `docs/gpu.md`.
 
 ## Total estimated effort
 
