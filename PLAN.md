@@ -38,11 +38,11 @@ frontend, the grouping pass, and the user-facing shapes.
 Each milestone leaves a working, tested artifact.
 
 > **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅ ·
-> M5 headless ✅ · **M6 ✅ (fully headless — the correctness oracle)**.
-> M3/M4/M5 Blender verification pending (checklists in `TESTING.md`);
-> M6 has no Blender step.
-> Run `python3 -m pytest tests/` (227 headless tests; see `TESTING.md`
-> for the milestone-by-milestone path). Whole arc: `../ROADMAP.md`.
+> M5 headless ✅ · **M6 ✅ (oracle)** · **M7 ✅ headless (OSL backend)**.
+> M3/M4/M5 Blender verification + M7 OSL-runtime parity pending
+> (checklists in `TESTING.md`); M6 has no runtime step.
+> Run `python3 -m pytest tests/` (242 headless tests, 2 oslc-skipped;
+> see `TESTING.md`). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
 
@@ -184,6 +184,30 @@ refresh.
 **Done =** `tests/m6_evaluator/` green. This converts the structural
 confidence of M1–M5 into proven numerical correctness, headlessly, and
 becomes the oracle for validating the OSL/GLSL/GPU backends.
+
+### M7 — OSL backend ✅ headless
+
+First backend off the multi-backend trajectory (ROADMAP §4b): the same
+expression compiled to an Open Shading Language shader for Cycles.
+
+**Headless — built + tested:**
+- `backend/osl.py`: SSA emitter (`emit_osl` / `osl_source`), per-op OSL
+  template table, reference `cn_value_noise`/`cn_voronoi_f1` mirroring
+  the M6 oracle, included only when used.
+- 15 M7 tests: op-template coverage; structural validity (shader
+  signature, balanced braces/parens, **SSA declared-before-use**,
+  params surfaced, faithful ripple chain, scalar vs vector output);
+  + 2 `oslc`-compile tests that auto-run when the toolchain is present,
+  skip otherwise.
+
+**OSL-runtime checklist (when oslc/testshade/Blender available):**
+- generated shaders compile (auto-runs in any env with `oslc`);
+- numeric parity vs the M6 oracle — exact for noise-free expressions
+  (OSL stdlib == numpy IEEE); bit-exact lattice-hash parity for
+  `noise()`/`voronoi()` is the explicit runtime item.
+
+**Done =** `tests/m7_osl/` green; the OSL-runtime checklist confirms
+compile + oracle parity where the toolchain exists. See `docs/osl.md`.
 
 ## Total estimated effort
 

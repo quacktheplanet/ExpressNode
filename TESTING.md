@@ -393,6 +393,63 @@ See `docs/evaluator.md` for the reference noise/voronoi spec and the
 Blender-noise caveat (GN delegates to Blender's noise nodes, so
 noise-containing expressions match OSL/GLSL but not GN — by design).
 
+## Milestone 7 — OSL backend (`tests/m7_osl/`)
+
+**Headless:** the same expression compiled to an Open Shading Language
+shader (`osl_source(...)`). First backend off the multi-backend
+trajectory; validated against the M6 oracle.
+
+| Test file | Verifies |
+|---|---|
+| `test_osl_coverage.py` | Every frontend op has an OSL template (or is one of the two emitter-special-cased ops) |
+| `test_osl_structure.py` | Shader signature; balanced braces/parens; **SSA — every `vN` declared before use**; params surfaced; noise lib only when used; ripple chain faithful; scalar/vector output; name override |
+| `test_osl_compile.py` | Runs `oslc` on the generated shaders **if oslc is on PATH**; skips cleanly otherwise (auto-runs in any toolchain'd env) |
+
+**M7 headless done-criterion:** `tests/m7_osl/` green (15 tests; the 2
+oslc tests skip without the toolchain).
+
+Inspect a generated shader:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+from coding_nodes import osl_source
+print(osl_source(open("coding-nodes/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 7 — OSL-runtime checklist **[oslc / testshade / Blender]**
+
+Run where the OSL toolchain exists (no Blender GUI needed for the first
+two):
+
+1. **Compile.** `oslc shader.osl` succeeds for both examples. (The
+   pytest in `test_osl_compile.py` does this automatically when `oslc`
+   is on PATH.)
+2. **Numeric parity, noise-free.** For a noise-free expression (e.g.
+   ripple), `testshade` output over a grid equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — expected
+   exact, since OSL stdlib is IEEE-identical to numpy.
+3. **Numeric parity, noise.** For curl-noise, compare to the oracle;
+   record any lattice-hash mismatch (Python uint32 vs OSL `int`
+   overflow/shift) — that's the known parity item to reconcile in the
+   M7 follow-up.
+4. **In Cycles (Blender).** Assign the shader in a Cycles material;
+   confirm it drives the expected channel and animates with `Time`.
+
+#### Soft spots to record
+
+- **Lattice-hash bit-parity** across Python/OSL for `noise()`/
+  `voronoi()` (item 3).
+- **`attr.read`/`obj.read`** currently emit neutral defaults; wiring to
+  OSL `getattribute()` is the M7 follow-up.
+
+### Outcome
+
+When `tests/m7_osl/` is green and the runtime checklist confirms
+compile + noise-free parity, M7 is done: the same expression is a
+correct Cycles shader, validated against the oracle.
+
 ## Continuous checks
 
 Run before every commit:

@@ -24,6 +24,13 @@ def plan_source(source: str, inline_threshold: int = 3,
                       apply_mode=apply_mode)
 
 
+def osl_source(source: str, shader_name: str = "") -> str:
+    """Compile + emit an OSL shader. Pure, headless. Raises CompileError
+    on unsupported syntax."""
+    from coding_nodes.backend.osl import emit_osl
+    return emit_osl(compile(source), shader_name=shader_name)
+
+
 def build_in_blender(source: str, inline_threshold: int = 3,
                      apply_mode: str = "raw"):
     """Compile + group + plan + execute. Requires Blender. Returns the

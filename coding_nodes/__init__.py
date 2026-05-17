@@ -10,6 +10,9 @@ Milestones (see PLAN.md):
     M5  polish: apply modes, param reconcile, packaging        [headless done;
                                                                 Blender pending]
     M6  numpy reference evaluator (correctness oracle)         [headless done]
+    M7  OSL backend (validate vs the oracle)                   [headless done;
+                                                                OSL-runtime
+                                                                checklist]
 
 Public API:
     compile(source) -> CompiledExpression   Parse a Python expression.
@@ -21,7 +24,13 @@ Public API:
 
 from coding_nodes.frontend import CompileError, CompiledExpression, compile
 from coding_nodes.grouping import GroupedGraph, GroupRegion, group
-from coding_nodes.backend import EmissionPlan, build_plan, plan_source
+from coding_nodes.backend import (
+    EmissionPlan,
+    build_plan,
+    emit_osl,
+    osl_source,
+    plan_source,
+)
 
 __all__ = [
     "compile",
@@ -33,6 +42,8 @@ __all__ = [
     "plan_source",
     "build_plan",
     "EmissionPlan",
+    "osl_source",
+    "emit_osl",
 ]
 
 # The evaluator needs numpy — the only part of the package that does.
@@ -43,4 +54,4 @@ try:  # pragma: no cover - trivial import guard
 except ImportError:  # pragma: no cover
     pass
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"

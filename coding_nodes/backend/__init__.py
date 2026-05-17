@@ -4,6 +4,7 @@ Headless, testable:
     op_emitters   op -> Blender node descriptor registry
     plan          build_plan(compiled) -> EmissionPlan
     pipeline      plan_source(source) -> EmissionPlan
+    osl           emit_osl(compiled) -> OSL shader source
 
 Requires Blender:
     gn_executor   execute(plan) -> bpy NodeTree
@@ -21,7 +22,8 @@ from coding_nodes.backend.plan import (
     GroupDef,
     build_plan,
 )
-from coding_nodes.backend.pipeline import plan_source
+from coding_nodes.backend.pipeline import osl_source, plan_source
+from coding_nodes.backend.osl import emit_osl, osl_template_ops
 
 __all__ = [
     "OpEmitter",
@@ -32,4 +34,7 @@ __all__ = [
     "GroupDef",
     "build_plan",
     "plan_source",
+    "osl_source",
+    "emit_osl",
+    "osl_template_ops",
 ]
