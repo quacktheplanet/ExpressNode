@@ -25,16 +25,19 @@ inside — not a wall of `Math (MULTIPLY)` nodes.
 
 ## Status
 
-The full **M1–M5 headless build is complete** — frontend, grouping,
+The full **M1–M6 headless build is complete** — frontend, grouping,
 backend (op emitters + emission plan + executor), both user-facing
 shapes (modifier + node group), apply modes, parameter reconciliation,
-error triage, doc guard, and addon packaging. **195 passing tests, no
-Blender required.** The M3/M4/M5 Blender verification is a planned,
-checklisted step (see `TESTING.md`). The whole arc is mapped in
+error triage, doc guard, addon packaging, and the **numpy reference
+evaluator (M6)** that *proves the math is correct* (ripple matches
+hand-written numpy to 0.0 error) and is the oracle for validating
+future backends. **227 passing tests, no Blender required.** The
+M3/M4/M5 Blender verification is a planned, checklisted step (see
+`TESTING.md`); M6 has no Blender step. The whole arc is mapped in
 [`../ROADMAP.md`](../ROADMAP.md).
 
 ```bash
-cd coding-nodes && python3 -m pytest tests/ -q          # 195 tests
+cd coding-nodes && python3 -m pytest tests/ -q          # 227 tests
 python3 tools/package_addon.py dist                     # build the zip
 ```
 
@@ -68,10 +71,11 @@ Read order:
 4. `TESTING.md` — milestone-by-milestone path + the M3 Blender checklist.
 5. `docs/grouping.md` — the M2 grouping-pass design.
 6. `docs/emission.md` — the M3 backend design.
-7. `docs/expression-reference.md` — the supported Python surface.
-8. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
+7. `docs/evaluator.md` — the M6 numpy oracle + reference noise spec.
+8. `docs/expression-reference.md` — the supported Python surface.
+9. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
    comparison.
-6. `docs/examples/` — two worked examples.
+10. `docs/examples/` — two worked examples.
 
 ## Relationship to the other projects in this repo
 

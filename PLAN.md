@@ -38,9 +38,10 @@ frontend, the grouping pass, and the user-facing shapes.
 Each milestone leaves a working, tested artifact.
 
 > **Status:** M1 ✅ · M2 ✅ · M3 headless ✅ · M4 headless ✅ ·
-> M5 headless ✅ (M3/M4/M5 Blender verification pending — checklists
-> in `TESTING.md`). The headless build of the M1→M5 path is complete.
-> Run `python3 -m pytest tests/` (195 headless tests; see `TESTING.md`
+> M5 headless ✅ · **M6 ✅ (fully headless — the correctness oracle)**.
+> M3/M4/M5 Blender verification pending (checklists in `TESTING.md`);
+> M6 has no Blender step.
+> Run `python3 -m pytest tests/` (227 headless tests; see `TESTING.md`
 > for the milestone-by-milestone path). Whole arc: `../ROADMAP.md`.
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
@@ -164,6 +165,25 @@ follows the README, and has a working example fast.
 modifier UI, `normal` mode, debounced auto-recompile, "View Graph"
 button, dropped-group in-place re-edit, step-by-step example docs
 refresh.
+
+### M6 — Reference Evaluator / correctness oracle ✅
+
+**Fully headless — built + tested, no Blender step:**
+- `coding_nodes/evaluator/`: a numpy interpreter of the EvalGraph.
+  `evaluate(compiled, P=..., t=..., params=...)` → `EvalResult`.
+- `evaluator/noise.py`: the canonical reference value-noise / voronoi
+  (the spec OSL/GLSL/GPU must reproduce).
+- `evaluator/ops.py`: a numpy implementation of every op, mirroring
+  `backend/op_emitters.py`.
+- 32 M6 tests: ripple matches hand-written numpy to 0.0 error;
+  user-function inlining numerically correct; curl-noise deterministic
+  & parameter-sensitive; noise spec pinned; API contract.
+- Fixed `examples/curl_noise.py` so `scale`/`strength` are actually
+  used (the evaluator surfaced that they were dead — a real find).
+
+**Done =** `tests/m6_evaluator/` green. This converts the structural
+confidence of M1–M5 into proven numerical correctness, headlessly, and
+becomes the oracle for validating the OSL/GLSL/GPU backends.
 
 ## Total estimated effort
 

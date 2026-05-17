@@ -357,6 +357,42 @@ When 5.1–5.4 pass, the product is shippable: installable in one zip,
 two working shapes, values that survive edits, and errors that explain
 themselves. Remaining items become the M5 follow-up list.
 
+## Milestone 6 — Reference Evaluator / oracle (`tests/m6_evaluator/`)
+
+**Fully headless — no Blender, ever.** The numpy evaluator runs the
+expression graph directly and proves the *numbers* are right, not just
+that the plan is shaped right. It is the oracle every future backend
+(OSL/GLSL/GPU) gets validated against.
+
+| Test file | Verifies |
+|---|---|
+| `test_correctness.py` | Arithmetic, vectors, built-ins, user-function inlining compute exactly; **ripple == hand-written numpy, 0.0 error**; `set_attr` records correctly |
+| `test_curl_noise_eval.py` | curl-noise: (N,3), finite, deterministic, time/seed/strength sensitive |
+| `test_noise_spec.py` | Reference value-noise/voronoi properties pinned (range, determinism, spatial+temporal continuity) |
+| `test_oracle_api.py` | `evaluate()` defaults, shapes, normals fallback, attribute/object injection, EvalResult is array-like |
+
+**M6 done-criterion:** `tests/m6_evaluator/` green (32 tests). There is
+**no M6 Blender step** — correctness is proven entirely headlessly.
+This is the deliverable that converts "we think it's right" into "we
+proved it's right" for the whole M1→M5 path.
+
+Try it:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import numpy as np
+from coding_nodes import compile, evaluate
+c = compile(open("coding-nodes/examples/ripple.py").read())
+P = np.random.uniform(-2, 2, (5, 3))
+print(evaluate(c, P=P, t=0.3).values)
+PY
+```
+
+See `docs/evaluator.md` for the reference noise/voronoi spec and the
+Blender-noise caveat (GN delegates to Blender's noise nodes, so
+noise-containing expressions match OSL/GLSL but not GN — by design).
+
 ## Continuous checks
 
 Run before every commit:
