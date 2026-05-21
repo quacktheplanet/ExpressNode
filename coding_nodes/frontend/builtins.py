@@ -138,6 +138,9 @@ BUILTIN_FNS: dict[str, BuiltinFn] = {
                                  ((V3, V3, F), V3)]),
     "smoothstep": BuiltinFn("smoothstep", "math.smoothstep",
                             signatures=[((F, F, F), F)]),
+    "fract": _scalar_unary("fract", "math.fract"),
+    "step": _scalar_binary("step", "math.step"),
+    "ping_pong": _scalar_binary("ping_pong", "math.ping_pong"),
 
     # --- procedural ---
     "noise": BuiltinFn(

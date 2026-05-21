@@ -114,6 +114,11 @@ _reg(OpEmitter("math.mix", "ShaderNodeMix",
 _reg(OpEmitter("math.smoothstep", "ShaderNodeMapRange",
                {"interpolation_type": "SMOOTHSTEP"}, output="Result",
                kind="complex", note="Map Range smoothstep emulation"))
+_reg(_math("math.fract", "FRACTION"))
+_reg(OpEmitter("math.step", "ShaderNodeMath", {"operation": "GREATER_THAN"},
+               output="Value", kind="complex",
+               note="GREATER_THAN(x, edge); exact at all but x==edge boundary"))
+_reg(_math("math.ping_pong", "PING_PONG"))
 
 # --- vector ops ---
 _reg(_vmath("vec.add", "ADD"))

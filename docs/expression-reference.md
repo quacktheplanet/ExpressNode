@@ -96,6 +96,9 @@ the language is pure-functional.
 | `clamp(x, lo, hi)` | Clamp |
 | `mix(a, b, t)` | Linear interpolation |
 | `smoothstep(lo, hi, x)` | Smooth step |
+| `fract(x)` | Fractional part (`x - floor(x)`) |
+| `step(edge, x)` | 0.0 if x < edge, else 1.0 |
+| `ping_pong(x, scale)` | Triangle wave, range [0, scale] |
 
 ### Procedural
 

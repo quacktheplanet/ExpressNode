@@ -86,6 +86,24 @@ def test_mix_vec3_with_scalar_t():
     assert c.return_type.value == "vec3"
 
 
+def test_fract_takes_float_returns_float():
+    c = compile("def f(): return fract(1.7)")
+    assert "math.fract" in _ops(c)
+    assert c.return_type.value == "float"
+
+
+def test_step_takes_two_floats_returns_float():
+    c = compile("def f(): return step(0.5, 0.8)")
+    assert "math.step" in _ops(c)
+    assert c.return_type.value == "float"
+
+
+def test_ping_pong_takes_two_floats_returns_float():
+    c = compile("def f(): return ping_pong(2.5, 1.0)")
+    assert "math.ping_pong" in _ops(c)
+    assert c.return_type.value == "float"
+
+
 def test_unknown_function_rejected():
     with pytest.raises(CompileError, match="Unknown function"):
         compile("def f(): return frobnicate(1.0)")

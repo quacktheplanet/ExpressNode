@@ -159,6 +159,9 @@ _TEMPLATES = {
     "math.clamp": lambda a, n: f"clamp({a[0]}, {a[1]}, {a[2]})",
     "math.mix": lambda a, n: f"mix({a[0]}, {a[1]}, {a[2]})",
     "math.smoothstep": lambda a, n: f"smoothstep({a[0]}, {a[1]}, {a[2]})",
+    "math.fract": lambda a, n: f"({a[0]} - floor({a[0]}))",
+    "math.step": lambda a, n: f"(({a[1]}) >= ({a[0]}) ? 1.0 : 0.0)",
+    "math.ping_pong": lambda a, n: f"(fabs(fmod({a[0]}, 2.0 * ({a[1]})) - ({a[1]}))",
     # vector
     "vec.add": _bin("+"), "vec.sub": _bin("-"),
     "vec.mul": _bin("*"), "vec.div": _bin("/"),
