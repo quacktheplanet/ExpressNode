@@ -52,9 +52,6 @@ def test_key_docs_exist():
                  "glsl.md", "gpu.md", "expression-reference.md",
                  "existing-alternatives.md"):
         assert (DOCS / name).exists(), f"missing docs/{name}"
-    root = DOCS.parents[1]
-    for name in ("ROADMAP.md",):
-        assert (root / name).exists(), f"missing {name}"
     cn = DOCS.parent
     for name in ("README.md", "SPEC.md", "SCOPE.md", "PLAN.md",
                  "TESTING.md"):

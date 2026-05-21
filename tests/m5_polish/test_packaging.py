@@ -24,8 +24,9 @@ def test_zip_contains_both_packages_and_shim(tmp_path):
     assert f"{p}/coding_nodes/__init__.py" in names
     assert f"{p}/coding_nodes/backend/modifier.py" in names
     assert f"{p}/coding_nodes/backend/node_group.py" in names
-    assert f"{p}/sacred_geometry/__init__.py" in names
-    assert f"{p}/sacred_geometry/ir/eval_graph.py" in names
+    # IR is now vendored inside coding_nodes/_ir (Strategy B split)
+    assert f"{p}/coding_nodes/_ir/__init__.py" in names
+    assert f"{p}/coding_nodes/_ir/eval_graph.py" in names
 
 
 def test_shim_has_bl_info_and_registers_both_shapes(tmp_path):

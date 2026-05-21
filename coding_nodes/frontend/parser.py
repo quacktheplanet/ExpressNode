@@ -15,7 +15,7 @@ import ast
 from dataclasses import dataclass, field as _dc_field
 from typing import Any
 
-from sacred_geometry.ir.eval_graph import EvalGraph, EvalNode, SocketType
+from coding_nodes._ir.eval_graph import EvalGraph, EvalNode, SocketType
 
 from coding_nodes.frontend.builtins import (
     BUILTIN_FNS,

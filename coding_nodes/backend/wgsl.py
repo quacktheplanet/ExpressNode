@@ -22,7 +22,7 @@ Correctness model (same split as GN/OSL/GLSL):
 
 from __future__ import annotations
 
-from sacred_geometry.ir.eval_graph import SocketType
+from coding_nodes._ir.eval_graph import SocketType
 
 from coding_nodes.backend.op_emitters import get_emitter
 from coding_nodes.frontend.parser import CompiledExpression

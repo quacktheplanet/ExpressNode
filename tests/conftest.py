@@ -1,12 +1,12 @@
-"""Add coding_nodes and sacred_geometry to sys.path so tests can import them
-without an install step."""
+"""Add coding_nodes to sys.path so tests can import it without an install step.
+
+The IR (formerly sacred_geometry.ir) is now vendored at coding_nodes._ir,
+so no sibling repo path is needed.
+"""
 
 import sys
 from pathlib import Path
 
 _CODING_NODES = Path(__file__).resolve().parent.parent
-_SACRED_GEOMETRY = _CODING_NODES.parent / "sacred-geometry-engine"
-
-for p in (_CODING_NODES, _SACRED_GEOMETRY):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
+if str(_CODING_NODES) not in sys.path:
+    sys.path.insert(0, str(_CODING_NODES))

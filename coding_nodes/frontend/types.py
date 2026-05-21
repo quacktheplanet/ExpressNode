@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from sacred_geometry.ir.eval_graph import SocketType
+from coding_nodes._ir.eval_graph import SocketType
 
 
 class TypeKind(Enum):

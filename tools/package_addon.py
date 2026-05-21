@@ -1,17 +1,14 @@
 """Build an installable Blender addon zip.
 
-The addon imports both `coding_nodes` and `sacred_geometry`, so the zip
-bundles both alongside a thin shim `__init__.py` that puts the bundled
-packages on `sys.path` and registers both shapes (modifier + node
-group).
+The IR (formerly sacred_geometry.ir) is vendored inside coding_nodes/_ir,
+so the zip only needs to bundle coding_nodes — no sibling repo required.
 
 Resulting zip layout (what Blender's "Install from Disk" expects — a
 single top-level package directory):
 
     coding_nodes_addon/
         __init__.py        (bl_info + register/unregister shim)
-        coding_nodes/      (copied)
-        sacred_geometry/   (copied)
+        coding_nodes/      (copied, includes _ir/)
 
 `build()` is pure filesystem work — headlessly testable. Whether Blender
 loads the result is the M5 Blender checklist step.
@@ -61,10 +58,6 @@ def _coding_nodes_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _sacred_geometry_pkg() -> Path:
-    return _coding_nodes_root().parent / "sacred-geometry-engine" / "sacred_geometry"
-
-
 def build(dest_dir: str | Path) -> Path:
     """Assemble the addon under dest_dir and zip it. Returns the zip path."""
     dest_dir = Path(dest_dir)
@@ -82,8 +75,6 @@ def build(dest_dir: str | Path) -> Path:
 
     shutil.copytree(_coding_nodes_root() / "coding_nodes",
                     stage / "coding_nodes", ignore=_ignore)
-    shutil.copytree(_sacred_geometry_pkg(),
-                    stage / "sacred_geometry", ignore=_ignore)
 
     zip_path = dest_dir / f"{PKG_NAME}.zip"
     if zip_path.exists():
