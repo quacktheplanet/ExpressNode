@@ -74,7 +74,7 @@ def build(dest_dir: str | Path) -> Path:
         shutil.rmtree(stage)
     stage.mkdir(parents=True)
 
-    (stage / "__init__.py").write_text(_SHIM)
+    (stage / "__init__.py").write_text(_SHIM, encoding="utf-8")
 
     def _ignore(_d, names):
         return [n for n in names
