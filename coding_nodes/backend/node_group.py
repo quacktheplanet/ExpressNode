@@ -142,10 +142,10 @@ def _build_classes():
 
     class CN_PT_group_panel(bpy.types.Panel):
         bl_idname = "CN_PT_group_panel"
-        bl_label = "Expression Nodes Group"
+        bl_label = "ExpressNode Group"
         bl_space_type = "NODE_EDITOR"
         bl_region_type = "UI"
-        bl_category = "Expression Nodes"
+        bl_category = "ExpressNode"
 
         @classmethod
         def poll(cls, context):

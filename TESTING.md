@@ -1,6 +1,6 @@
 # Testing Guide
 
-How to verify Expression Nodes, milestone by milestone. The pytest suite
+How to verify ExpressNode, milestone by milestone. The pytest suite
 is **headless** (no Blender). The steps marked **[Blender]** and the
 runtime checklists are automated by `tests/blender/` and `tests/gpu/`
 (see "Blender and GPU checks" below).
@@ -18,7 +18,7 @@ wiring is handled by `tests/conftest.py` — no install step needed.
 ## Run everything
 
 ```bash
-cd coding-nodes
+cd ExpressNode
 python3 -m pytest tests/ -q
 ```
 
@@ -146,10 +146,10 @@ Quick manual look at the grouped structure:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 from coding_nodes import compile, group
 import json, pathlib
-src = pathlib.Path("coding-nodes/examples/curl_noise.py").read_text()
+src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
 print(json.dumps(group(compile(src)).describe(), indent=2, default=str))
 PY
 ```
@@ -179,10 +179,10 @@ Inspect the plan for an example:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 from coding_nodes import plan_source
 import json, pathlib
-src = pathlib.Path("coding-nodes/examples/curl_noise.py").read_text()
+src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
 print(json.dumps(plan_source(src, inline_threshold=2).describe(),
                   indent=2, default=str))
 PY
@@ -210,14 +210,14 @@ expressions shared a function name overwrote each other's trees.
 
 ### Setup
 
-1. Copy or symlink `coding-nodes/blender_addon/` into Blender's addons
+1. Copy or symlink `ExpressNode/blender_addon/` into Blender's addons
    folder (or "Install from Disk" pointing at it). It puts both
    `coding_nodes` and `sacred_geometry` on `sys.path` automatically.
-2. Enable **"Expression Nodes — Modifier"** in Preferences.
+2. Enable **"ExpressNode — Modifier"** in Preferences.
 
 ### Test 3.1 — addon registers
 
-- Expected: no errors on enable. A **Expression Nodes** panel
+- Expected: no errors on enable. A **ExpressNode** panel
   appears under Properties › Modifiers with a text field and a
   *Recompile Expression* button.
 
@@ -310,14 +310,14 @@ operators in a real Node Editor, the panel drawing); passes on 5.0.1 and
 #### Test 4.1 — operator + panel appear
 
 - In a Geometry Nodes editor, open the N-panel.
-- Expected: a **Expression Nodes** tab with a "Expression Nodes
+- Expected: a **ExpressNode** tab with a "ExpressNode
   Group" panel: an expression text field and an *Add Expression Node
   Group* button.
 
 #### Test 4.2 — drop a group into an existing tree
 
 1. Add a Geometry Nodes modifier to a mesh; open its tree.
-2. In the Expression Nodes panel, keep the default `offset` expression.
+2. In the ExpressNode panel, keep the default `offset` expression.
 3. Click *Add Expression Node Group*.
 - Expected: a Group node appears in the tree, labeled with the
   generated group name, referencing the compiled `Expr_offset` tree
@@ -375,7 +375,7 @@ the addon packages into a structurally valid, self-contained zip.
 Build the installable addon:
 
 ```bash
-cd coding-nodes && python3 tools/package_addon.py dist
+cd ExpressNode && python3 tools/package_addon.py dist
 # -> dist/coding_nodes_addon.zip
 ```
 
@@ -390,7 +390,7 @@ Automated by `tests/blender/bl_install.py` (5.1) and
 2. Blender › Preferences › Add-ons › Install from Disk →
    `dist/coding_nodes_addon.zip`; enable it.
 - Expected: enables with no errors; both the Modifier panel (Shape A)
-  and the Node Editor "Expression Nodes" tab (Shape B) appear. No external
+  and the Node Editor "ExpressNode" tab (Shape B) appear. No external
   `sys.path` setup needed — the libs are bundled.
 
 #### Test 5.2 — apply modes (Shape A)
@@ -460,10 +460,10 @@ Try it:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 import numpy as np
 from coding_nodes import compile, evaluate
-c = compile(open("coding-nodes/examples/ripple.py").read())
+c = compile(open("ExpressNode/examples/ripple.py").read())
 P = np.random.uniform(-2, 2, (5, 3))
 print(evaluate(c, P=P, t=0.3).values)
 PY
@@ -492,9 +492,9 @@ Inspect a generated shader:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 from coding_nodes import osl_source
-print(osl_source(open("coding-nodes/examples/ripple.py").read()))
+print(osl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```
 
@@ -552,9 +552,9 @@ glslang tests skip without the toolchain).
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 from coding_nodes import glsl_source
-print(glsl_source(open("coding-nodes/examples/ripple.py").read()))
+print(glsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```
 
@@ -608,9 +608,9 @@ validator tests skip without naga/tint).
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["coding-nodes", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
 from coding_nodes import wgsl_source
-print(wgsl_source(open("coding-nodes/examples/ripple.py").read()))
+print(wgsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```
 
@@ -655,7 +655,7 @@ all from one IR. The §4b backend-breadth trajectory is built.
 Run before every commit:
 
 ```bash
-cd coding-nodes && python3 -m pytest tests/ -q
+cd ExpressNode && python3 -m pytest tests/ -q
 ```
 
 Add a test alongside any new behavior, in the milestone directory it

@@ -1,4 +1,7 @@
-# Expression Nodes
+# ExpressNode
+
+*Formerly Coding Nodes / Expression Nodes. The name you see changed; the Python package
+(`coding_nodes`), the add-on module and the operator ids did not, so existing files keep working.*
 
 A Blender addon that compiles a **Python expression** into a clean,
 group-wrapped **Geometry Nodes subtree**. The user types math; the
@@ -66,11 +69,11 @@ python3 tests/blender/run_all.py --blender <blender.exe> [--blender ...] \
    legacy add-on zip (bl_info), which Blender 5 still installs; tested
    on 5.0.1 and 5.1.2.
 2. Blender › Preferences › Add-ons › **Install from Disk** → pick the
-   zip → enable **"Expression Nodes"**.
+   zip → enable **"ExpressNode"**.
 3. **Shape A (modifier):** select a mesh → Properties › Modifiers ›
-   *Expression Nodes* panel → paste an expression → *Recompile*.
+   *ExpressNode* panel → paste an expression → *Recompile*.
 4. **Shape B (node group):** open a Geometry Nodes editor → N-panel ›
-   *Expression Nodes* tab → *Add Expression Node Group*. To change a
+   *ExpressNode* tab → *Add Expression Node Group*. To change a
    dropped group later, select it, edit the text and click *Update
    Selected Group*; every node using that group updates.
 
@@ -107,10 +110,10 @@ Read order:
 | Project | Role |
 |---|---|
 | `../annihilation-morph-script/` | Single Blender script — the visual target |
-| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter Expression Nodes builds on. |
-| `coding-nodes/` (this) | Adds a Python-expression frontend to that compiler, plus the user-facing modifier and node group. |
+| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter ExpressNode builds on. |
+| `ExpressNode/` (this) | Adds a Python-expression frontend to that compiler, plus the user-facing modifier and node group. |
 
-Expression Nodes is an addon that sits on top of `sacred_geometry`'s
+ExpressNode is an addon that sits on top of `sacred_geometry`'s
 compiler infrastructure. The IR and GN backend live there; the
 frontend and UX shells live here.
 

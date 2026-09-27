@@ -9,7 +9,7 @@
   position each pixel used, one writes the Result, and the Result is
   compared with the oracle at those positions.
 - Shape B: the Add / Update Expression Group operators run in a real
-  Node Editor, and the Expression Nodes panels draw without errors in
+  Node Editor, and the ExpressNode panels draw without errors in
   the Node Editor sidebar and the modifier properties.
 """
 
@@ -217,7 +217,7 @@ def shape_b_operators():
     # Panels: draw the Node Editor sidebar tab and the modifier panel.
     ui = next(r for r in area.regions if r.type == "UI")
     try:
-        ui.active_panel_category = "Expression Nodes"
+        ui.active_panel_category = "ExpressNode"
     except (AttributeError, TypeError):
         pass
     errors = draw_errors()

@@ -1,4 +1,4 @@
-# Expression Nodes — Executive Specification
+# ExpressNode — Executive Specification
 
 **Version:** 0.2 (focused)
 **Status:** Specification. Build queued.

@@ -1,4 +1,4 @@
-# Expression Nodes — Build Plan
+# ExpressNode — Build Plan
 
 Concrete steps to ship the first version. Ordered so each step leaves
 a working artifact.
@@ -6,7 +6,7 @@ a working artifact.
 ## Where the code goes
 
 ```
-coding-nodes/
+ExpressNode/
 ├── coding_nodes/                    # the Python package
 │   ├── __init__.py
 │   ├── frontend/                    # Python AST -> EvalGraph
@@ -118,7 +118,7 @@ preservation across recompiles. These are polish on a working path.
 **Headless layer ✅ (built + tested):**
 - `backend/node_group.py`: an operator that compiles via the **same M3
   pipeline** and inserts a `GeometryNodeGroup` into the active node
-  editor, plus a Expression Nodes N-panel. Lazy `bpy`, import-clean.
+  editor, plus an ExpressNode N-panel. Lazy `bpy`, import-clean.
 - Addon shell wires both shapes (modifier + node group).
 - 9 M4 tests in `tests/m4_nodegroup/`: the Shape-B contract (root
   group interface == params-in + Result-out, nothing interface/

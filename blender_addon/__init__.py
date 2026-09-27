@@ -1,4 +1,4 @@
-"""Expression Nodes — Blender addon shell.
+"""ExpressNode — Blender addon shell.
 
 Registers the Expression Modifier and the Expression Node Group. The
 engine package (coding_nodes, with its IR vendored in coding_nodes._ir)
@@ -11,11 +11,11 @@ import sys
 from pathlib import Path
 
 bl_info = {
-    "name": "Expression Nodes",
+    "name": "ExpressNode",
     "author": "Geonodes Annihilation",
     "version": (0, 6, 0),
     "blender": (5, 0, 0),
-    "location": "Properties > Modifiers · Node Editor > Expression Nodes",
+    "location": "Properties > Modifiers · Node Editor > ExpressNode",
     "description": "Compile a Python expression into a Geometry Nodes subtree",
     "category": "Node",
 }

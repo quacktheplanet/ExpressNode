@@ -1,4 +1,4 @@
-# Expression Nodes — Scope & Vision
+# ExpressNode — Scope & Vision
 
 ## Vision
 
@@ -60,11 +60,11 @@ workflow.
 - **`sacred-geometry-engine/`** — a framework-shaped procedural engine.
   Phase 1 MVP shipped. Its compiler (DSL → SymbolGraph → EvalGraph →
   GN tree) is the foundation this project builds on.
-- **`coding-nodes/`** (this) — adds a Python-expression frontend to the
+- **`ExpressNode/`** (this) — adds a Python-expression frontend to the
   same compiler, plus the user-facing modifier and node group.
 
 The two engineering projects share infrastructure: the EvalGraph IR
-and the GN emitter live in `sacred_geometry/`. Expression Nodes is a
+and the GN emitter live in `sacred_geometry/`. ExpressNode is a
 thinner addon that adds one more frontend (the Python AST parser) and
 one polish pass (group-wrapping) on top.
 

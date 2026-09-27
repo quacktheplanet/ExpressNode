@@ -1,6 +1,6 @@
 # Example: Ripple Displacement
 
-A hello-world for Expression Nodes. The simplest useful expression: displace
+A hello-world for ExpressNode. The simplest useful expression: displace
 mesh vertices along Z by a time-varying sine wave.
 
 ## The expression

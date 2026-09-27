@@ -23,7 +23,7 @@ from pathlib import Path
 PKG_NAME = "coding_nodes_addon"
 
 _SHIM = '''\
-"""Expression Nodes — Modifier + Node Group (bundled addon)."""
+"""ExpressNode — Modifier + Node Group (bundled addon)."""
 
 import os
 import sys
@@ -31,11 +31,11 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 bl_info = {
-    "name": "Expression Nodes",
+    "name": "ExpressNode",
     "author": "Geonodes Annihilation",
     "version": (0, 6, 0),
     "blender": (5, 0, 0),
-    "location": "Properties > Modifiers · Node Editor > Expression Nodes",
+    "location": "Properties > Modifiers · Node Editor > ExpressNode",
     "description": "Compile a Python expression into a Geometry Nodes subtree",
     "category": "Node",
 }
