@@ -1,4 +1,4 @@
-# Coding Nodes — Scope & Vision
+# Expression Nodes — Scope & Vision
 
 ## Vision
 
@@ -64,7 +64,7 @@ workflow.
   same compiler, plus the user-facing modifier and node group.
 
 The two engineering projects share infrastructure: the EvalGraph IR
-and the GN emitter live in `sacred_geometry/`. Coding Nodes is a
+and the GN emitter live in `sacred_geometry/`. Expression Nodes is a
 thinner addon that adds one more frontend (the Python AST parser) and
 one polish pass (group-wrapping) on top.
 

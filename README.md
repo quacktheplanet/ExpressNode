@@ -1,4 +1,4 @@
-# Coding Nodes
+# Expression Nodes
 
 A Blender addon that compiles a **Python expression** into a clean,
 group-wrapped **Geometry Nodes subtree**. The user types math; the
@@ -55,11 +55,11 @@ python3 tools/package_addon.py dist                     # build the zip
 1. `python3 tools/package_addon.py dist` → `dist/coding_nodes_addon.zip`
    (bundles both packages; no manual `sys.path` setup needed).
 2. Blender › Preferences › Add-ons › **Install from Disk** → pick the
-   zip → enable **"Coding Nodes — Expression"**.
+   zip → enable **"Expression Nodes — Modifier"**.
 3. **Shape A (modifier):** select a mesh → Properties › Modifiers ›
-   *Coding Nodes Expression* panel → paste an expression → *Recompile*.
+   *Expression Nodes* panel → paste an expression → *Recompile*.
 4. **Shape B (node group):** open a Geometry Nodes editor → N-panel ›
-   *Coding Nodes* tab → *Add Expression Node Group*.
+   *Expression Nodes* tab → *Add Expression Node Group*.
 
 First expression to try (`examples/ripple.py`):
 
@@ -94,10 +94,10 @@ Read order:
 | Project | Role |
 |---|---|
 | `../annihilation-morph-script/` | Single Blender script — the visual target |
-| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter Coding Nodes builds on. |
+| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter Expression Nodes builds on. |
 | `coding-nodes/` (this) | Adds a Python-expression frontend to that compiler, plus the user-facing modifier and node group. |
 
-Coding Nodes is an addon that sits on top of `sacred_geometry`'s
+Expression Nodes is an addon that sits on top of `sacred_geometry`'s
 compiler infrastructure. The IR and GN backend live there; the
 frontend and UX shells live here.
 

@@ -1,4 +1,4 @@
-"""Coding Nodes — Blender addon shell.
+"""Expression Nodes — Blender addon shell.
 
 Registers the Expression Modifier. The engine package (coding_nodes) and
 its sibling (sacred_geometry) must be importable; this inserts their
@@ -10,11 +10,11 @@ import sys
 from pathlib import Path
 
 bl_info = {
-    "name": "Coding Nodes — Expression Modifier",
+    "name": "Expression Nodes — Modifier",
     "author": "Geonodes Annihilation",
     "version": (0, 3, 0),
     "blender": (4, 0, 0),
-    "location": "Properties > Modifiers > Coding Nodes Expression",
+    "location": "Properties > Modifiers > Expression Nodes",
     "description": "Compile a Python expression into a Geometry Nodes subtree",
     "category": "Node",
 }

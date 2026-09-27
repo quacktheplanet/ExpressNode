@@ -1,6 +1,6 @@
 # Testing Guide
 
-How to verify Coding Nodes, milestone by milestone. Every step here is
+How to verify Expression Nodes, milestone by milestone. Every step here is
 **headless** (no Blender) unless explicitly marked **[Blender]**.
 
 ## Prerequisites
@@ -149,11 +149,11 @@ Blender. Do these in order; each builds on the previous.
 1. Copy or symlink `coding-nodes/blender_addon/` into Blender's addons
    folder (or "Install from Disk" pointing at it). It puts both
    `coding_nodes` and `sacred_geometry` on `sys.path` automatically.
-2. Enable **"Coding Nodes — Expression Modifier"** in Preferences.
+2. Enable **"Expression Nodes — Modifier"** in Preferences.
 
 ### Test 3.1 — addon registers
 
-- Expected: no errors on enable. A **Coding Nodes Expression** panel
+- Expected: no errors on enable. A **Expression Nodes** panel
   appears under Properties › Modifiers with a text field and a
   *Recompile Expression* button.
 
@@ -239,14 +239,14 @@ Do these after the M3 checklist; Shape B sits on the same executor.
 #### Test 4.1 — operator + panel appear
 
 - In a Geometry Nodes editor, open the N-panel.
-- Expected: a **Coding Nodes** tab with a "Coding Nodes Expression
+- Expected: a **Expression Nodes** tab with a "Expression Nodes
   Group" panel: an expression text field and an *Add Expression Node
   Group* button.
 
 #### Test 4.2 — drop a group into an existing tree
 
 1. Add a Geometry Nodes modifier to a mesh; open its tree.
-2. In the Coding Nodes panel, keep the default `offset` expression.
+2. In the Expression Nodes panel, keep the default `offset` expression.
 3. Click *Add Expression Node Group*.
 - Expected: a Group node appears in the tree, labeled with the
   generated group name, referencing the compiled `Expr_offset` tree
@@ -316,7 +316,7 @@ Run after the M3/M4 checklists.
 2. Blender › Preferences › Add-ons › Install from Disk →
    `dist/coding_nodes_addon.zip`; enable it.
 - Expected: enables with no errors; both the Modifier panel (Shape A)
-  and the Node Editor "Coding Nodes" tab (Shape B) appear. No external
+  and the Node Editor "Expression Nodes" tab (Shape B) appear. No external
   `sys.path` setup needed — the libs are bundled.
 
 #### Test 5.2 — apply modes (Shape A)

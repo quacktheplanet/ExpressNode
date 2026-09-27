@@ -64,7 +64,7 @@ def _build_classes():
 
     class CN_PT_panel(bpy.types.Panel):
         bl_idname = "CN_PT_panel"
-        bl_label = "Coding Nodes Expression"
+        bl_label = "Expression Nodes"
         bl_space_type = "PROPERTIES"
         bl_region_type = "WINDOW"
         bl_context = "modifier"

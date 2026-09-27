@@ -1,4 +1,4 @@
-# Coding Nodes — Executive Specification
+# Expression Nodes — Executive Specification
 
 **Version:** 0.2 (focused)
 **Status:** Specification. Build queued.

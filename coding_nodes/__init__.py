@@ -1,4 +1,4 @@
-"""Coding Nodes — compile a Python expression to a Geometry Nodes subtree.
+"""Expression Nodes — compile a Python expression to a Geometry Nodes subtree.
 
 Milestones (see PLAN.md):
     M1  frontend: Python source -> EvalGraph                  [done]
