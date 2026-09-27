@@ -14,7 +14,7 @@ bl_info = {
     "name": "Expression Nodes",
     "author": "Geonodes Annihilation",
     "version": (0, 6, 0),
-    "blender": (4, 0, 0),
+    "blender": (5, 0, 0),
     "location": "Properties > Modifiers · Node Editor > Expression Nodes",
     "description": "Compile a Python expression into a Geometry Nodes subtree",
     "category": "Node",

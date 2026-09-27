@@ -396,6 +396,14 @@ def _build_node(tree, pn: PlannedNode, ctx: _Context) -> _Built:
         return _Built(_out(node, "Geometry"),
                       [[_in(node, n)] for n in pn.input_names])
 
+    if op == "modifier.normal_offset":
+        # Normal * distance, for the Normal apply mode
+        normal = tree.nodes.new("GeometryNodeInputNormal")
+        scale = tree.nodes.new("ShaderNodeVectorMath")
+        scale.operation = "SCALE"
+        tree.links.new(normal.outputs[0], scale.inputs[0])
+        return _Built(scale.outputs[0], [[_in(scale, "Scale")]])
+
     if pn.emitter_kind == "simple":
         # One node, inputs in declared order. Checked last, so ops with a
         # handler above (neg, clamp, ...) never fall through to here.

@@ -92,6 +92,42 @@ def test_set_attr_becomes_a_root_output():
     assert all(pn.op != "attr.write" for pn in root.nodes)
 
 
+def test_set_attr_inside_nested_helpers_reaches_the_root():
+    src = ("def mark(p):\n"
+           "    set_attr('heat', p.x * 2.0)\n"
+           "    return p.y\n"
+           "\n"
+           "def outer(p):\n"
+           "    return mark(p) + 1.0\n"
+           "\n"
+           "def f(P, t):\n"
+           "    return vec3(0.0, 0.0, outer(P))\n")
+    plan = build_plan(compile(src), apply_mode="offset", inline_threshold=0)
+    root = plan.groups[plan.root_name]
+    assert [n for n, _ in root.outputs] == ["Result", "heat"]
+    assert plan.attr_writes == [("heat", "float")]
+    # the value leaves each helper group through an extra output
+    helpers = [g for name, g in plan.groups.items()
+               if name not in (plan.root_name, plan.modifier_root_name)]
+    assert sum(len(g.outputs) for g in helpers) >= 4   # 2 returns + heat out of each
+    feeds_heat = [l for l in root.links
+                  if l.dst.kind == "group_output" and l.dst.socket == "heat"]
+    assert len(feeds_heat) == 1 and feeds_heat[0].src.kind == "instance"
+    assert all(pn.op != "attr.write" for g in plan.groups.values() for pn in g.nodes)
+
+
+def test_set_attr_in_a_helper_used_twice_is_a_clear_error():
+    import pytest
+    src = ("def mark(p):\n"
+           "    set_attr('heat', p.x)\n"
+           "    return p.y\n"
+           "\n"
+           "def f(P, t):\n"
+           "    return vec3(mark(P), mark(P * 2.0), 0.0)\n")
+    with pytest.raises(ValueError, match="more than once"):
+        build_plan(compile(src), apply_mode="offset", inline_threshold=0)
+
+
 def test_nodes_carry_their_input_order():
     plan = build_plan(compile("def f(P, t):\n    return vec3(clamp(P.x, 0.0, 1.0), 0.0, 0.0)\n"))
     root = plan.groups[plan.root_name]

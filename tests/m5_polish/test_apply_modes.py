@@ -64,7 +64,26 @@ def test_unknown_apply_mode_rejected():
 
 
 def test_apply_modes_constant_is_the_supported_set():
-    assert APPLY_MODES == ("raw", "offset", "absolute")
+    assert APPLY_MODES == ("raw", "offset", "absolute", "normal")
+
+
+NORMAL_SRC = "def lift(P, t, amt=0.2):" + chr(10) + "    return (P.z + 1.0) * amt" + chr(10)
+
+
+def test_normal_mode_scales_the_normal_by_the_result():
+    plan = plan_source(NORMAL_SRC, apply_mode="normal")
+    w = plan.groups[plan.modifier_root_name]
+    scale = [n for n in w.nodes if n.op == "modifier.normal_offset"]
+    assert len(scale) == 1 and scale[0].settings == {"operation": "SCALE"}
+    assert any(l.src.kind == "instance" and l.src.socket == "Result"
+               and l.dst.kind == "node" and l.dst.ref == scale[0].local_id for l in w.links)
+    assert any(l.src.kind == "node" and l.src.ref == scale[0].local_id
+               and l.dst.socket == "Offset" for l in w.links)
+
+
+def test_normal_mode_needs_a_number():
+    with pytest.raises(ValueError, match="must return a number"):
+        plan_source(_src("ripple.py"), apply_mode="normal")
 
 
 def test_curl_noise_wraps_too():

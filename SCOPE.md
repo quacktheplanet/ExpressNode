@@ -70,7 +70,7 @@ one polish pass (group-wrapping) on top.
 
 ## What "done" looks like (first ship)
 
-- The addon installs cleanly in Blender 4.x / 5.x.
+- The addon installs cleanly in Blender 5.0+ (tested on 5.0.1 and 5.1.2).
 - The Expression Modifier works: edit, compile, see the result.
 - The Expression Node Group works: drop it in, edit, see the result.
 - Output node groups are readable: functions become groups, layout is

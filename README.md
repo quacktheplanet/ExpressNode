@@ -116,7 +116,7 @@ frontend and UX shells live here.
 
 ## Target platform
 
-Blender 4.x and 5.x. Python 3.11+.
+Blender 5.0 or newer (tested on 5.0.1 and 5.1.2). Python 3.11+.
 
 ## License
 

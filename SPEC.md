@@ -2,7 +2,7 @@
 
 **Version:** 0.2 (focused)
 **Status:** Specification. Build queued.
-**Target:** Blender 4.x / 5.x.
+**Target:** Blender 5.0+ (tested on 5.0.1 and 5.1.2; 4.x is not tested or declared).
 
 > See also `SCOPE.md` (vision and audience) and `PLAN.md` (concrete
 > build steps).

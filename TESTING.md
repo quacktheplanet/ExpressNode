@@ -418,9 +418,15 @@ Automated by `tests/blender/bl_install.py` (5.1) and
 #### Soft spots
 
 - **`absolute` mode UI.** Done: an Offset/Absolute selector in the panel.
-- **`normal` mode.** Scalar-Result-along-normal is intentionally not in
-  `APPLY_MODES` yet (type handling); add when a case needs it. A scalar
-  Result in offset mode currently moves points by (r, r, r).
+- **`normal` mode.** Done: the panel's Normal option pushes each point
+  along its normal by a number Result (Normal x Result into Set Position's
+  Offset); a vector Result is refused with a clear message (checked in
+  Blender on an ico sphere). A scalar Result in offset mode still moves
+  points by (r, r, r).
+- **`set_attr()` in helpers.** Done: the value leaves each nested group
+  through an extra output to the root (checked in Blender two levels down).
+  A helper that calls `set_attr()` and is used twice is refused, since both
+  calls would write the same attribute.
 - **Reconcile wiring.** Done: the modifier calls `reconcile()` on every
   rebuild; a tuned value survives body edits and new parameters, and a
   renamed parameter starts at its default (checked in Blender).

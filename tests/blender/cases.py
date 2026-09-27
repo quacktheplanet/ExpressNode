@@ -157,6 +157,22 @@ CASES = [
         "backends": ("gn",),
     },
     {
+        # set_attr() two helper levels down: the value leaves both groups
+        "name": "helper_attr",
+        "source": (
+            "def mark(p, k):\n"
+            "    set_attr(\"heat\", sin(p.x * k) * 0.5 + p.y * p.z)\n"
+            "    return cos(p.y * k) * 0.25 + p.x * 0.1\n"
+            "\n"
+            "def outer(p, k):\n"
+            "    return mark(p, k) * 2.0 + sin(p.z * k) * 0.1\n"
+            "\n"
+            "def helper_attr(P, t, k=1.3):\n"
+            "    return vec3(0.0, 0.0, outer(P, k))\n"
+        ),
+        "backends": ("gn",),
+    },
+    {
         "name": "curl_noise",
         "source": (_EXAMPLES / "curl_noise.py").read_text(encoding="utf-8"),
         "backends": SHADERS,

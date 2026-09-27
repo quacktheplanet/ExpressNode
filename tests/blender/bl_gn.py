@@ -226,6 +226,14 @@ def parity_case(case):
         ok = heat is not None and np.allclose(heat, P[:, 0] * 2.0, atol=1e-5)
         check("gn set_attr stores the attribute", ok,
               "heat == 2*P.x" if ok else f"heat={heat if heat is None else heat[:4]}")
+    if case["name"] == "helper_attr":
+        heat = eval_attribute(obj, "heat")
+        want = np.sin(P[:, 0] * 1.3) * 0.5 + P[:, 1] * P[:, 2]
+        ok = heat is not None and np.allclose(heat, want, atol=1e-5)
+        depth = _nesting_depth(expr_tree(mod))
+        check("gn set_attr inside nested helpers stores the attribute", ok and depth >= 2,
+              f"group nesting depth {depth}, "
+              + ("heat matches" if ok else f"heat={heat if heat is None else heat[:4]}"))
     if case["name"] == "helpers":
         depth = _nesting_depth(expr_tree(mod))
         check("gn nested helper groups (2 levels)", depth >= 2,
@@ -341,6 +349,22 @@ def check_ripple_golden_path():
     check("5.2 absolute mode places points at the result",
           np.abs(got - want).max() < 2e-4,
           f"max err {np.abs(got - want).max():.2e}")
+
+    # Normal mode: a number pushes each point along its own normal
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1.0, location=(3.0, 0.0, 0.0))
+    sphere = bpy.context.active_object
+    nsrc = "def lift(P, t, amt=0.2):\n    return (P.z + 1.0) * amt\n"
+    ok_compile = recompile(sphere, nsrc, mode="normal") == {"FINISHED"} and not sphere.coding_nodes_error
+    P0 = positions(sphere, evaluated=False)
+    N0 = np.array([v.normal[:] for v in sphere.data.vertices])
+    got = positions(sphere)
+    want = P0 + N0 * ((P0[:, 2:3] + 1.0) * 0.2)
+    err = np.abs(got - want).max()
+    check("5.2 normal mode pushes points along their normals",
+          ok_compile and err < 2e-4, f"max err {err:.2e}, error '{sphere.coding_nodes_error}'")
+    recompile(sphere, "def f(P, t):\n    return P * 0.1\n", mode="normal")
+    check("5.2 normal mode rejects a vector result with a clear message",
+          "must return a number" in sphere.coding_nodes_error, sphere.coding_nodes_error[:120])
 
 
 def check_errors_in_panel():

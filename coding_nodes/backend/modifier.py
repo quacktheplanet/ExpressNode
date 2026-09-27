@@ -20,6 +20,7 @@ MODIFIER_NAME = "CodingNodesExpression"
 APPLY_MODE_ITEMS = [
     ("offset", "Offset", "Move each point by the expression's result"),
     ("absolute", "Absolute", "Place each point at the expression's result"),
+    ("normal", "Normal", "Push each point along its normal by the expression's result (a number)"),
 ]
 _classes: list = []
 

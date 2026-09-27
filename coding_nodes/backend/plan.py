@@ -251,16 +251,13 @@ class _Planner:
                 continue
             home = self.home_path[nid]
             if node.op == "attr.write":
-                if home != self.g.root.path:
-                    raise ValueError(
-                        "set_attr() inside a helper function isn't "
-                        "supported by the Geometry Nodes backend yet; "
-                        "call it from the main function."
-                    )
+                # Called from a helper too: _links threads the value out of
+                # every nested group to the root output named after it.
                 name = node.params.get("name", "")
                 if name in dict(self.attr_writes) or name == "Result":
                     raise ValueError(
-                        f"set_attr({name!r}, ...) is used twice or clashes "
+                        f"set_attr({name!r}, ...) runs more than once (a "
+                        f"helper that calls it may be used twice) or clashes "
                         f"with the Result output."
                     )
                 self.attr_write[nid] = name
@@ -429,7 +426,7 @@ class _Planner:
                          Endpoint("group_output", None, "Result"))
 
 
-APPLY_MODES = ("raw", "offset", "absolute")
+APPLY_MODES = ("raw", "offset", "absolute", "normal")
 
 
 def _add_modifier_wrapper(plan: EmissionPlan, compiled: CompiledExpression,
@@ -440,12 +437,20 @@ def _add_modifier_wrapper(plan: EmissionPlan, compiled: CompiledExpression,
     raw       no wrapper (Shape B drops the raw group directly)
     offset    Set Position, Offset = expression Result (vec3)
     absolute  Set Position, Position = expression Result (vec3)
+    normal    Set Position, Offset = Normal * expression Result (float)
     """
     if apply_mode == "raw":
         plan.apply_mode = "raw"
         return plan
 
     expr = plan.groups[plan.root_name]
+    if apply_mode == "normal":
+        rtype = dict(expr.outputs).get("Result")
+        if rtype != "float":
+            raise ValueError(
+                "Normal mode pushes points along their normals, so the "
+                "expression must return a number (the distance), not "
+                f"{rtype or 'nothing'}.")
     wrapper_name = f"Modifier_{plan.root_name}"
     w = GroupDef(name=wrapper_name, region_path=(), is_root=False)
     w.inputs.append(("Geometry", "geometry"))
@@ -480,11 +485,29 @@ def _add_modifier_wrapper(plan: EmissionPlan, compiled: CompiledExpression,
             Endpoint("instance", 0, pname),
         ))
     # expression Result -> Set Position (Offset or Position)
-    sp_in = "Offset" if apply_mode == "offset" else "Position"
-    w.links.append(PlannedLink(
-        Endpoint("instance", 0, "Result"),
-        Endpoint("node", 0, sp_in),
-    ))
+    if apply_mode == "normal":
+        # Result (a distance) scales the point normal into the offset
+        w.nodes.append(PlannedNode(
+            local_id=1, eval_id=-1, op="modifier.normal_offset",
+            bl_idname="ShaderNodeVectorMath", settings={"operation": "SCALE"},
+            params={}, output_socket="Vector", emitter_kind="complex",
+            input_names=("Distance",), input_types=("float",),
+            output_type="vector",
+        ))
+        w.links.append(PlannedLink(
+            Endpoint("instance", 0, "Result"),
+            Endpoint("node", 1, "Distance"),
+        ))
+        w.links.append(PlannedLink(
+            Endpoint("node", 1, "Vector"),
+            Endpoint("node", 0, "Offset"),
+        ))
+    else:
+        sp_in = "Offset" if apply_mode == "offset" else "Position"
+        w.links.append(PlannedLink(
+            Endpoint("instance", 0, "Result"),
+            Endpoint("node", 0, sp_in),
+        ))
     # Set Position geometry -> Geometry out
     w.links.append(PlannedLink(
         Endpoint("node", 0, "Geometry"),
