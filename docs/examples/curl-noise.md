@@ -20,7 +20,8 @@ def curl(P, t, scale=2.0, strength=0.4):
     ny_dz = n(P + vec3(0, 0, eps), 2) - n(P + vec3(0, 0, -eps), 2)
     nz_dx = n(P + vec3(eps, 0, 0), 3) - n(P + vec3(-eps, 0, 0), 3)
     nz_dy = n(P + vec3(0, eps, 0), 3) - n(P + vec3(0, -eps, 0), 3)
-    return vec3(nz_dy - ny_dz, nx_dz - nz_dx, ny_dx - nx_dy) * strength
+    # central differences: divide by the 2*eps step
+    return vec3(nz_dy - ny_dz, nx_dz - nz_dx, ny_dx - nx_dy) * (strength / (2 * eps))
 ```
 
 What it does:

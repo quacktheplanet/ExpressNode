@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 bl_info = {
     "name": "Expression Nodes",
     "author": "Geonodes Annihilation",
-    "version": (0, 5, 0),
+    "version": (0, 6, 0),
     "blender": (4, 0, 0),
     "location": "Properties > Modifiers · Node Editor > Expression Nodes",
     "description": "Compile a Python expression into a Geometry Nodes subtree",

@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import json
+
 from coding_nodes.backend.plan import EmissionPlan, build_plan
 from coding_nodes.frontend.parser import CompiledExpression, compile
 
@@ -43,11 +45,20 @@ def wgsl_source(source: str, fn_name: str = "") -> str:
 
 
 def build_in_blender(source: str, inline_threshold: int = 3,
-                     apply_mode: str = "raw"):
+                     apply_mode: str = "raw", suffix: str | None = None):
     """Compile + group + plan + execute. Requires Blender. Returns the
     deliverable root NodeTree (the modifier wrapper when apply_mode wraps,
-    else the raw expression group)."""
+    else the raw expression group).
+
+    `suffix` is appended to the tree names. None picks one: the existing
+    tree is rebuilt in place when it came from the same source, otherwise
+    a fresh ".001"-style name is used.
+    """
     plan = plan_source(source, inline_threshold=inline_threshold,
                        apply_mode=apply_mode)
-    from coding_nodes.backend.gn_executor import execute
-    return execute(plan)
+    from coding_nodes.backend.gn_executor import execute, tree_name_for
+    if suffix is None:
+        suffix = tree_name_for(plan, source)
+    tree = execute(plan, suffix=suffix, source=source)
+    tree["coding_nodes_params"] = json.dumps(plan.parameters)
+    return tree

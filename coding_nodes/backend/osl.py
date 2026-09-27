@@ -34,27 +34,42 @@ from coding_nodes.frontend.parser import CompiledExpression
 # ---------------------------------------------------------------------------
 
 OSL_NOISE_LIB = r'''
-/* Reference value noise / voronoi — mirrors the numpy oracle
-   (coding_nodes/evaluator/noise.py). Bit-exact cross-language hash
-   parity is the OSL-runtime checklist item; the algorithm matches. */
+/* Reference value noise / voronoi: mirrors the numpy oracle
+   (coding_nodes/evaluator/noise.py), hash included. */
 
-int cn_hash(int a, int b, int c, int d, int e)
+/* OSL has only signed 32-bit ints. Multiply and xor give the same bits
+   as uint32; right shifts are emulated as logical shifts, and the final
+   value is read as unsigned, so the hash matches the oracle's uint32. */
+int cn_srl(int h, int s) { return (h >> s) & ((1 << (32 - s)) - 1); }
+int cn_step(int h, int p)
 {
-    int h = 0x9E3779B1;
-    int p[5] = {a, b, c, d, e};
-    for (int i = 0; i < 5; i = i + 1) {
-        h = (h ^ p[i]) * 0x85EBCA77;
-        h = h ^ (h >> 13);
-    }
-    h = (h ^ (h >> 15)) * 0xC2B2AE3D;
-    h = h ^ (h >> 13);
-    return h;
+    h = (h ^ p) * 0x85EBCA77;
+    return h ^ cn_srl(h, 13);
 }
-
+int cn_final(int h)
+{
+    h = (h ^ cn_srl(h, 15)) * 0xC2B2AE3D;
+    return h ^ cn_srl(h, 13);
+}
+float cn_u01(int h)
+{
+    float f = (float)(h & 0x7FFFFFFF);
+    if (h < 0) f += 2147483648.0;
+    return f / 4294967296.0;
+}
 float cn_h01(int a, int b, int c, int d, int e)
 {
-    int h = cn_hash(a, b, c, d, e) & 0x7FFFFFFF;
-    return (float)h / 2147483648.0;
+    int h = 0x9E3779B1;
+    h = cn_step(h, a); h = cn_step(h, b); h = cn_step(h, c);
+    h = cn_step(h, d); h = cn_step(h, e);
+    return cn_u01(cn_final(h));
+}
+float cn_h01_4(int a, int b, int c, int d)
+{
+    int h = 0x9E3779B1;
+    h = cn_step(h, a); h = cn_step(h, b); h = cn_step(h, c);
+    h = cn_step(h, d);
+    return cn_u01(cn_final(h));
 }
 
 float cn_fade(float t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
@@ -93,9 +108,9 @@ float cn_voronoi_f1(point p, int seed)
     for (int dy = -1; dy <= 1; dy = dy + 1)
     for (int dz = -1; dz <= 1; dz = dz + 1) {
         int cx = bx + dx, cy = by + dy, cz = bz + dz;
-        float fx = cn_h01(cx, cy, cz, seed, 0);
-        float fy = cn_h01(cy, cz, cx, seed, 0);
-        float fz = cn_h01(cz, cx, cy, seed, 0);
+        float fx = cn_h01_4(cx, cy, cz, seed);
+        float fy = cn_h01_4(cy, cz, cx, seed);
+        float fz = cn_h01_4(cz, cx, cy, seed);
         point f = point(cx + fx, cy + fy, cz + fz);
         float d = distance(p, f);
         if (d < best) best = d;
@@ -152,7 +167,7 @@ _TEMPLATES = {
     "math.atan2": lambda a, n: f"atan2({a[0]}, {a[1]})",
     "math.sqrt": _fn("sqrt"), "math.exp": _fn("exp"), "math.log": _fn("log"),
     "math.abs": _fn("abs"), "math.floor": _fn("floor"),
-    "math.ceil": _fn("ceil"), "math.round": _fn("round"),
+    "math.ceil": _fn("ceil"), "math.round": lambda a, n: f"floor({a[0]} + 0.5)",
     "math.sign": _fn("sign"),
     "math.min": lambda a, n: f"min({a[0]}, {a[1]})",
     "math.max": lambda a, n: f"max({a[0]}, {a[1]})",
@@ -161,7 +176,7 @@ _TEMPLATES = {
     "math.smoothstep": lambda a, n: f"smoothstep({a[0]}, {a[1]}, {a[2]})",
     "math.fract": lambda a, n: f"({a[0]} - floor({a[0]}))",
     "math.step": lambda a, n: f"(({a[1]}) >= ({a[0]}) ? 1.0 : 0.0)",
-    "math.ping_pong": lambda a, n: f"(fabs(fmod({a[0]}, 2.0 * ({a[1]})) - ({a[1]}))",
+    "math.ping_pong": lambda a, n: f"fabs(mod(({a[0]}) - ({a[1]}), 2.0 * ({a[1]})) - ({a[1]}))",
     # vector
     "vec.add": _bin("+"), "vec.sub": _bin("-"),
     "vec.mul": _bin("*"), "vec.div": _bin("/"),
@@ -178,10 +193,10 @@ _TEMPLATES = {
     "vec.combine2": lambda a, n: f"vector({a[0]}, {a[1]}, 0.0)",
     "vec.combine3": lambda a, n: f"vector({a[0]}, {a[1]}, {a[2]})",
     "vec.combine4": lambda a, n: f"vector({a[0]}, {a[1]}, {a[2]})",
-    "vec.component.x": lambda a, n: f"({a[0]})[0]",
-    "vec.component.y": lambda a, n: f"({a[0]})[1]",
-    "vec.component.z": lambda a, n: f"({a[0]})[2]",
-    "vec.component.w": lambda a, n: f"({a[0]})[2]",
+    "vec.component.x": lambda a, n: f"{a[0]}[0]",
+    "vec.component.y": lambda a, n: f"{a[0]}[1]",
+    "vec.component.z": lambda a, n: f"{a[0]}[2]",
+    "vec.component.w": lambda a, n: f"{a[0]}[2]",
     # comparisons
     "compare.lt": _cmp("<"), "compare.le": _cmp("<="),
     "compare.gt": _cmp(">"), "compare.ge": _cmp(">="),
@@ -212,10 +227,16 @@ _TEMPLATES = {
 
 
 def _swizzle(a, n):
+    # OSL only indexes names (`v0[1]`, not `(v0)[1]`) and has no vec2 or
+    # vec4: two components pad with 0, a fourth is dropped.
     pat = n.params.get("pattern", "xyz")
     idx = {"x": 0, "y": 1, "z": 2, "w": 2}
-    comps = ", ".join(f"({a[0]})[{idx[c]}]" for c in pat)
-    return f"vector({comps})" if len(pat) >= 2 else comps
+    comps = [f"{a[0]}[{idx[c]}]" for c in pat[:3]]
+    if len(comps) == 1:
+        return comps[0]
+    while len(comps) < 3:
+        comps.append("0.0")
+    return f"vector({', '.join(comps)})"
 
 
 _TEMPLATES["vec.swizzle"] = _swizzle

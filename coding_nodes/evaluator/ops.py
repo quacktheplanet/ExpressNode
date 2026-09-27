@@ -193,6 +193,14 @@ def _clamp(args, node, ctx):
     return np.clip(x, lo, hi)
 
 
+def _ping_pong(a, b):
+    a, b = np.broadcast_arrays(np.asarray(a, dtype=np.float64),
+                               np.asarray(b, dtype=np.float64))
+    safe = np.where(b == 0, 1.0, b)
+    r = np.abs(np.mod(a - safe, 2.0 * safe) - safe)
+    return np.where(b == 0, 0.0, r)
+
+
 def _cross(args, node, ctx):
     return np.cross(np.asarray(args[0], dtype=np.float64),
                     np.asarray(args[1], dtype=np.float64))
@@ -257,9 +265,16 @@ OPS = {
     "math.sqrt": _un(np.sqrt), "math.exp": _un(np.exp),
     "math.log": _un(np.log), "math.abs": _un(np.abs),
     "math.floor": _un(np.floor), "math.ceil": _un(np.ceil),
-    "math.round": _un(np.round), "math.sign": _un(np.sign),
+    # round half up, like Blender's Round and GLSL floor(x + 0.5)
+    "math.round": _un(lambda a: np.floor(a + 0.5)), "math.sign": _un(np.sign),
     "math.min": _bin(np.minimum), "math.max": _bin(np.maximum),
     "math.clamp": _clamp, "math.mix": _mix, "math.smoothstep": _smoothstep,
+    "math.fract": _un(lambda a: a - np.floor(a)),
+    # step(edge, x): 1 where x >= edge
+    "math.step": _bin(lambda e, x: (x >= e).astype(np.float64)),
+    # Blender's Ping-Pong: 0 at 0, rising to `scale` at `scale`, back to
+    # 0 at 2*scale; 0 when scale is 0.
+    "math.ping_pong": _bin(_ping_pong),
     # vector
     "vec.add": _bin(lambda a, b: a + b),
     "vec.sub": _bin(lambda a, b: a - b),

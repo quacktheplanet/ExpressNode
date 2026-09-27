@@ -32,6 +32,34 @@ def _build_group_tree(source: str):
     return build_in_blender(source)
 
 
+def update_group(old_tree, source: str) -> str:
+    """Rebuild an expression group from new source. The tree is rebuilt
+    in place when the function name is unchanged; otherwise the new tree
+    replaces the old one in every group node that used it. Returns "" or
+    an error message."""
+    import bpy
+    from coding_nodes.frontend.errors import CompileError
+    from coding_nodes.backend.pipeline import build_in_blender, plan_source
+    try:
+        plan = plan_source(source)
+        suffix = None
+        if old_tree.name.startswith(plan.root_name):
+            suffix = old_tree.name[len(plan.root_name):]
+        tree = build_in_blender(source, suffix=suffix)
+    except CompileError as e:
+        return str(e)
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"
+    if tree != old_tree:
+        for group in bpy.data.node_groups:
+            for n in group.nodes:
+                if (n.bl_idname == "GeometryNodeGroup"
+                        and n.node_tree == old_tree):
+                    n.node_tree = tree
+                    n.label = tree.name
+    return ""
+
+
 def _build_classes():
     import bpy
 
@@ -71,9 +99,45 @@ def _build_classes():
             gnode.node_tree = tree
             gnode.label = tree.name
             gnode["coding_nodes_source"] = source
-            # place near the 2D cursor / origin
-            gnode.location = (0.0, 0.0)
+            gnode.location = tuple(getattr(context.space_data,
+                                           "cursor_location", (0.0, 0.0)))
+            for n in edit_tree.nodes:
+                n.select = False
+            gnode.select = True
+            edit_tree.nodes.active = gnode
             self.report({"INFO"}, f"Added {tree.name}")
+            return {"FINISHED"}
+
+    class CN_OT_update_expression_group(bpy.types.Operator):
+        bl_idname = "coding_nodes.update_expression_group"
+        bl_label = "Update Selected Group"
+        bl_description = (
+            "Recompile the active expression group node from the text "
+            "above; every node using that group updates"
+        )
+        bl_options = {"REGISTER", "UNDO"}
+
+        @classmethod
+        def poll(cls, context):
+            space = context.space_data
+            tree = getattr(space, "edit_tree", None)
+            node = tree.nodes.active if tree is not None else None
+            return (node is not None
+                    and node.bl_idname == "GeometryNodeGroup"
+                    and node.node_tree is not None
+                    and "coding_nodes_source" in node.node_tree)
+
+        def execute(self, context):
+            scene = context.scene
+            node = context.space_data.edit_tree.nodes.active
+            err = update_group(node.node_tree,
+                               scene.coding_nodes_group_expression)
+            scene.coding_nodes_group_error = err
+            if err:
+                self.report({"WARNING"}, "Compile error (see panel)")
+                return {"CANCELLED"}
+            node["coding_nodes_source"] = scene.coding_nodes_group_expression
+            self.report({"INFO"}, f"Updated {node.node_tree.name}")
             return {"FINISHED"}
 
     class CN_PT_group_panel(bpy.types.Panel):
@@ -94,13 +158,16 @@ def _build_classes():
             layout.prop(scene, "coding_nodes_group_expression", text="")
             layout.operator("coding_nodes.add_expression_group",
                              icon="NODETREE")
+            layout.operator("coding_nodes.update_expression_group",
+                             icon="FILE_REFRESH")
             err = getattr(scene, "coding_nodes_group_error", "")
             if err:
                 box = layout.box()
                 for line in err.splitlines():
                     box.label(text=line, icon="ERROR")
 
-    return [CN_OT_add_expression_group, CN_PT_group_panel]
+    return [CN_OT_add_expression_group, CN_OT_update_expression_group,
+            CN_PT_group_panel]
 
 
 def register():

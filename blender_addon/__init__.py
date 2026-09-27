@@ -1,29 +1,28 @@
 """Expression Nodes — Blender addon shell.
 
-Registers the Expression Modifier. The engine package (coding_nodes) and
-its sibling (sacred_geometry) must be importable; this inserts their
-parent directories on sys.path so the addon works when dropped into
-Blender's addons folder.
+Registers the Expression Modifier and the Expression Node Group. The
+engine package (coding_nodes, with its IR vendored in coding_nodes._ir)
+must be importable; this puts the repo root on sys.path so the shell
+works when linked into Blender's addons folder. The packaged zip
+(tools/package_addon.py) bundles the package instead.
 """
 
 import sys
 from pathlib import Path
 
 bl_info = {
-    "name": "Expression Nodes — Modifier",
+    "name": "Expression Nodes",
     "author": "Geonodes Annihilation",
-    "version": (0, 3, 0),
+    "version": (0, 6, 0),
     "blender": (4, 0, 0),
-    "location": "Properties > Modifiers > Expression Nodes",
+    "location": "Properties > Modifiers · Node Editor > Expression Nodes",
     "description": "Compile a Python expression into a Geometry Nodes subtree",
     "category": "Node",
 }
 
 _CODING_NODES = Path(__file__).resolve().parent.parent
-_SACRED = _CODING_NODES.parent / "sacred-geometry-engine"
-for _p in (_CODING_NODES, _SACRED):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
+if str(_CODING_NODES) not in sys.path:
+    sys.path.insert(0, str(_CODING_NODES))
 
 
 def register():

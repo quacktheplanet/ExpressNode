@@ -81,7 +81,8 @@ _reg(_math("math.add", "ADD"))
 _reg(_math("math.sub", "SUBTRACT"))
 _reg(_math("math.mul", "MULTIPLY"))
 _reg(_math("math.div", "DIVIDE"))
-_reg(_math("math.mod", "MODULO"))
+_reg(OpEmitter("math.mod", "ShaderNodeMath", {"operation": "FLOORED_MODULO"},
+               output="Value", note="floored, like Python's %"))
 _reg(_math("math.pow", "POWER"))
 _reg(OpEmitter("math.floordiv", "ShaderNodeMath", {"operation": "DIVIDE"},
                output="Value", kind="complex",
@@ -114,21 +115,21 @@ _reg(OpEmitter("math.mix", "ShaderNodeMix",
 _reg(OpEmitter("math.smoothstep", "ShaderNodeMapRange",
                {"interpolation_type": "SMOOTHSTEP"}, output="Result",
                kind="complex", note="Map Range smoothstep emulation"))
-_reg(_math("math.fract", "FRACTION"))
+_reg(_math("math.fract", "FRACT"))
 _reg(OpEmitter("math.step", "ShaderNodeMath", {"operation": "GREATER_THAN"},
                output="Value", kind="complex",
-               note="GREATER_THAN(x, edge); exact at all but x==edge boundary"))
-_reg(_math("math.ping_pong", "PING_PONG"))
+               note="1 - LESS_THAN(x, edge): x >= edge"))
+_reg(_math("math.ping_pong", "PINGPONG"))
 
 # --- vector ops ---
 _reg(_vmath("vec.add", "ADD"))
 _reg(_vmath("vec.sub", "SUBTRACT"))
 _reg(_vmath("vec.mul", "MULTIPLY"))
 _reg(_vmath("vec.div", "DIVIDE"))
-_reg(_vmath("vec.mod", "MODULO"))
-_reg(OpEmitter("vec.pow", "ShaderNodeVectorMath", {"operation": "MULTIPLY"},
+_reg(OpEmitter("vec.mod", "ShaderNodeVectorMath", {"operation": "DIVIDE"},
                output="Vector", kind="complex",
-               note="component-wise power has no single VectorMath op"))
+               note="floored a - b*floor(a/b); Vector Math Modulo is fmod"))
+_reg(_vmath("vec.pow", "POWER"))
 _reg(OpEmitter("vec.floordiv", "ShaderNodeVectorMath",
                {"operation": "DIVIDE"}, output="Vector", kind="complex"))
 _reg(_vmath("vec.neg", "SCALE"))   # scale by -1; executor sets factor
@@ -136,7 +137,9 @@ _reg(_vmath("vec.length", "LENGTH", out="Value"))
 _reg(_vmath("vec.dot", "DOT_PRODUCT", out="Value"))
 _reg(_vmath("vec.cross", "CROSS_PRODUCT"))
 _reg(_vmath("vec.normalize", "NORMALIZE"))
-_reg(_vmath("vec.reflect", "REFLECT"))
+_reg(OpEmitter("vec.reflect", "ShaderNodeVectorMath",
+               {"operation": "DOT_PRODUCT"}, output="Vector", kind="complex",
+               note="v - 2 dot(v,n) n; Vector Math Reflect normalizes n"))
 _reg(_vmath("vec.distance", "DISTANCE", out="Value"))
 
 # --- vector construction / access ---

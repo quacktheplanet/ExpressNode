@@ -53,6 +53,13 @@ class PlannedNode:
     params: dict = _dc_field(default_factory=dict)
     output_socket: object = 0
     emitter_kind: str = "simple"
+    # The eval node's declared input sockets, in order, with their types,
+    # and its result type. Links name inputs abstractly ("a", "arg1",
+    # "cond"); the executor maps the position in `input_names` onto the
+    # Blender node's real sockets.
+    input_names: tuple = ()
+    input_types: tuple = ()
+    output_type: str = "float"
 
 
 @dataclass
@@ -101,6 +108,10 @@ class EmissionPlan:
     # raw expression group (Shape B drops the raw group directly).
     modifier_root_name: str | None = None
     apply_mode: str = "raw"
+    # set_attr() calls: (attribute name, value socket type). The root
+    # group exposes each value as an extra output of that name; the
+    # modifier wrapper stores it on the geometry's points.
+    attr_writes: list[tuple[str, str]] = _dc_field(default_factory=list)
 
     def describe(self) -> dict:
         return {
@@ -108,6 +119,7 @@ class EmissionPlan:
             "modifier_root": self.modifier_root_name,
             "apply_mode": self.apply_mode,
             "parameters": self.parameters,
+            "attr_writes": self.attr_writes,
             "groups": {n: g.describe() for n, g in self.groups.items()},
         }
 
@@ -161,6 +173,11 @@ class _Planner:
         # Instance allocation: region path -> GroupInstance (placed in parent)
         self.instance_of_region: dict[tuple[str, ...], GroupInstance] = {}
         self._instance_counter: dict[tuple[str, ...], int] = {}
+
+        # set_attr() nodes are not emitted as nodes: their value leaves
+        # the root group through an output named after the attribute.
+        self.attr_write: dict[int, str] = {}    # eval id -> attribute name
+        self.attr_writes: list[tuple[str, str]] = []
 
     # --- region helpers ---
 
@@ -219,6 +236,7 @@ class _Planner:
                 (p.name, p.type.to_socket_type().value, p.default)
                 for p in self.c.parameters
             ],
+            attr_writes=list(self.attr_writes),
         )
 
     def _place_nodes(self) -> None:
@@ -232,6 +250,22 @@ class _Planner:
             if emitter.kind in ("interface", "param_only"):
                 continue
             home = self.home_path[nid]
+            if node.op == "attr.write":
+                if home != self.g.root.path:
+                    raise ValueError(
+                        "set_attr() inside a helper function isn't "
+                        "supported by the Geometry Nodes backend yet; "
+                        "call it from the main function."
+                    )
+                name = node.params.get("name", "")
+                if name in dict(self.attr_writes) or name == "Result":
+                    raise ValueError(
+                        f"set_attr({name!r}, ...) is used twice or clashes "
+                        f"with the Result output."
+                    )
+                self.attr_write[nid] = name
+                self.attr_writes.append((name, node.input_sockets[0][1].value))
+                continue
             local = self._alloc_local(home, nid)
             self.defs[home].nodes.append(PlannedNode(
                 local_id=local,
@@ -242,6 +276,10 @@ class _Planner:
                 params=dict(node.params),
                 output_socket=emitter.output,
                 emitter_kind=emitter.kind,
+                input_names=tuple(n for n, _ in node.input_sockets),
+                input_types=tuple(t.value for _, t in node.input_sockets),
+                output_type=(node.output_sockets[0][1].value
+                             if node.output_sockets else "float"),
             ))
 
     def _place_instances(self) -> None:
@@ -269,93 +307,126 @@ class _Planner:
             nid, sock = self.graph.outputs["result"]
             rt = self.graph.nodes[nid].output_type(sock).value
             root_def.outputs.append(("Result", rt))
+        for name, stype in self.attr_writes:
+            root_def.outputs.append((name, stype))
 
-        # Wrapped regions: from their BoundarySockets.
-        for region in self.g.root.walk():
-            if region.is_root or region.inlined:
-                continue
-            d = self.defs[region.path]
-            for bs in region.inputs:
-                d.inputs.append((bs.name, bs.socket_type.value))
-            for bs in region.outputs:
-                d.outputs.append((bs.name, bs.socket_type.value))
+        # Wrapped regions get their sockets while links are threaded
+        # (_thread), one per value that crosses their boundary.
+
+    # --- threading values between groups ---
+
+    _SHORT_NAMES = {"input.position": "P", "input.normal": "N",
+                    "input.index": "i", "input.scene_time": "t",
+                    "input.frame": "frame", "input.delta_time": "dt"}
+
+    def _parent_def(self, def_path):
+        if def_path == self.g.root.path:
+            return None
+        return self._home_region(self.region_by_path[def_path[:-1]]).path
+
+    def _chain(self, def_path) -> list:
+        """Def paths from the root down to def_path, inclusive."""
+        chain = []
+        d = def_path
+        while d is not None:
+            chain.append(d)
+            d = self._parent_def(d)
+        return chain[::-1]
+
+    def _source_home(self, eval_id: int):
+        if self.graph.nodes[eval_id].op == "input.parameter":
+            return self.g.root.path
+        return self.home_path[eval_id]
 
     def _endpoint_for_source(self, eval_id: int,
                              socket: str) -> Endpoint:
         node = self.graph.nodes[eval_id]
         if node.op == "input.parameter":
             return Endpoint("group_input", None, node.params["name"])
+        if node.op == "attr.write":
+            raise ValueError(
+                "The value returned by set_attr() can't be used by the "
+                "Geometry Nodes backend; call set_attr() as a statement."
+            )
         return Endpoint("node", self.local_id[eval_id], socket)
 
+    def _boundary_socket(self, def_path, side: str, eval_id: int,
+                         socket: str) -> tuple[str, bool]:
+        """Name of def_path's input or output socket carrying the value
+        (eval_id, socket), creating it on first use. Returns (name,
+        created)."""
+        key = (def_path, side, eval_id, socket)
+        if key in self._boundary:
+            return self._boundary[key], False
+        d = self.defs[def_path]
+        sockets = d.inputs if side == "in" else d.outputs
+        node = self.graph.nodes[eval_id]
+        stype = node.output_type(socket).value
+        taken = {n for n, _ in sockets}
+        name = None
+        if side == "in":
+            if node.op == "input.parameter":
+                name = node.params["name"]
+            else:
+                name = self._SHORT_NAMES.get(node.op)
+        if name is None or name in taken:
+            prefix = "in" if side == "in" else "out"
+            k = sum(1 for n in taken if n.startswith(prefix + "_"))
+            name = f"{prefix}_{k}"
+            while name in taken:
+                k += 1
+                name = f"{prefix}_{k}"
+        sockets.append((name, stype))
+        self._boundary[key] = name
+        return name, True
+
+    def _thread(self, eval_id: int, socket: str, dst_home, dst: Endpoint):
+        """Link the value (eval_id, socket) to `dst` inside dst_home,
+        passing it out of every group between its home and the nearest
+        common group, then into every group down to dst_home."""
+        up = self._chain(self._source_home(eval_id))
+        down = self._chain(dst_home)
+        k = 0
+        while k < min(len(up), len(down)) and up[k] == down[k]:
+            k += 1
+        ep = self._endpoint_for_source(eval_id, socket)
+        for d in reversed(up[k:]):
+            name, created = self._boundary_socket(d, "out", eval_id, socket)
+            if created:
+                self.defs[d].links.append(PlannedLink(
+                    ep, Endpoint("group_output", None, name)))
+            ep = Endpoint("instance", self.instance_of_region[d].instance_id,
+                          name)
+        for d in down[k:]:
+            name, created = self._boundary_socket(d, "in", eval_id, socket)
+            if created:
+                self.defs[self._parent_def(d)].links.append(PlannedLink(
+                    ep, Endpoint("instance",
+                                 self.instance_of_region[d].instance_id,
+                                 name)))
+            ep = Endpoint("group_input", None, name)
+        self.defs[dst_home].links.append(PlannedLink(ep, dst))
+
     def _links(self) -> None:
-        # 1. Intra-def edges (both endpoints share a home def, neither side
-        #    crossing a wrapped boundary).
+        self._boundary: dict = {}
+        root = self.g.root.path
         for e in self.graph.edges:
             src_node = self.graph.nodes[e.source_node]
             if get_emitter(src_node.op).kind == "param_only":
                 continue
-            shome = self.home_path.get(e.source_node)
-            thome = self.home_path.get(e.target_node)
-            if shome is not None and shome == thome:
-                d = self.defs[shome]
-                d.links.append(PlannedLink(
-                    src=self._endpoint_for_source(e.source_node,
-                                                  e.source_socket),
-                    dst=Endpoint("node", self.local_id[e.target_node],
-                                 e.target_socket),
-                ))
-
-        # 2. Wrapped-region boundaries: thread producer -> instance ->
-        #    consumer through the interface (one nesting level).
-        for region in self.g.root.walk():
-            if region.is_root or region.inlined:
+            if e.target_node in self.attr_write:
+                self._thread(e.source_node, e.source_socket, root,
+                             Endpoint("group_output", None,
+                                      self.attr_write[e.target_node]))
                 continue
-            inst = self.instance_of_region[region.path]
-            parent_home = self._home_region(
-                self.region_by_path[region.path[:-1]]).path
-            parent_def = self.defs[parent_home]
-            child_def = self.defs[region.path]
-
-            for bs in region.inputs:
-                # parent side: producer -> instance input
-                parent_def.links.append(PlannedLink(
-                    src=self._endpoint_for_source(bs.producer_node,
-                                                  bs.producer_socket),
-                    dst=Endpoint("instance", inst.instance_id, bs.name),
-                ))
-                # child side: group input -> consumer
-                child_def.links.append(PlannedLink(
-                    src=Endpoint("group_input", None, bs.name),
-                    dst=Endpoint("node", self.local_id[bs.consumer_node],
-                                 bs.consumer_socket),
-                ))
-            for bs in region.outputs:
-                # child side: producer -> group output
-                child_def.links.append(PlannedLink(
-                    src=Endpoint("node", self.local_id[bs.producer_node],
-                                 bs.producer_socket),
-                    dst=Endpoint("group_output", None, bs.name),
-                ))
-                # parent side: instance output -> consumer / group output
-                if bs.consumer_node == -1:
-                    dst = Endpoint("group_output", None, "Result")
-                else:
-                    dst = Endpoint("node",
-                                   self.local_id.get(bs.consumer_node),
-                                   bs.consumer_socket)
-                parent_def.links.append(PlannedLink(
-                    src=Endpoint("instance", inst.instance_id, bs.name),
-                    dst=dst,
-                ))
-
-        # 3. Root result produced directly in the root def.
+            self._thread(e.source_node, e.source_socket,
+                         self.home_path[e.target_node],
+                         Endpoint("node", self.local_id[e.target_node],
+                                  e.target_socket))
         if "result" in self.graph.outputs:
             nid, sock = self.graph.outputs["result"]
-            if self.home_path.get(nid) == self.g.root.path:
-                self.defs[self.g.root.path].links.append(PlannedLink(
-                    src=self._endpoint_for_source(nid, sock),
-                    dst=Endpoint("group_output", None, "Result"),
-                ))
+            self._thread(nid, sock, root,
+                         Endpoint("group_output", None, "Result"))
 
 
 APPLY_MODES = ("raw", "offset", "absolute")
@@ -391,6 +462,9 @@ def _add_modifier_wrapper(plan: EmissionPlan, compiled: CompiledExpression,
         bl_idname="GeometryNodeSetPosition", settings={},
         params={"mode": apply_mode}, output_socket="Geometry",
         emitter_kind="complex",
+        input_names=("Geometry", "Position", "Offset"),
+        input_types=("geometry", "vector", "vector"),
+        output_type="geometry",
     )
     w.nodes.append(sp)
 

@@ -52,6 +52,19 @@ float cn_h01(uint a, uint b, uint c, uint d, uint e) {
     return float(cn_hash(a, b, c, d, e)) / 4294967296.0;
 }
 
+// Voronoi's feature points hash four values, like the oracle.
+float cn_h01_4(uint a, uint b, uint c, uint d) {
+    uint h = 0x9E3779B1u;
+    uint p[4] = uint[4](a, b, c, d);
+    for (int i = 0; i < 4; i++) {
+        h = (h ^ p[i]) * 0x85EBCA77u;
+        h = h ^ (h >> 13);
+    }
+    h = (h ^ (h >> 15)) * 0xC2B2AE3Du;
+    h = h ^ (h >> 13);
+    return float(h) / 4294967296.0;
+}
+
 float cn_fade(float t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 
 float cn_slice(float x, float y, float z, int iw, int seed) {
@@ -89,9 +102,9 @@ float cn_voronoi_f1(vec3 p, int seed) {
     for (int dy = -1; dy <= 1; dy++)
     for (int dz = -1; dz <= 1; dz++) {
         int cx = bx + dx, cy = by + dy, cz = bz + dz;
-        float fx = cn_h01(uint(cx), uint(cy), uint(cz), S, 0u);
-        float fy = cn_h01(uint(cy), uint(cz), uint(cx), S, 0u);
-        float fz = cn_h01(uint(cz), uint(cx), uint(cy), S, 0u);
+        float fx = cn_h01_4(uint(cx), uint(cy), uint(cz), S);
+        float fy = cn_h01_4(uint(cy), uint(cz), uint(cx), S);
+        float fz = cn_h01_4(uint(cz), uint(cx), uint(cy), S);
         vec3 f = vec3(float(cx) + fx, float(cy) + fy, float(cz) + fz);
         best = min(best, distance(p, f));
     }
@@ -151,7 +164,7 @@ _TEMPLATES = {
     "math.smoothstep": lambda a, n: f"smoothstep({a[0]}, {a[1]}, {a[2]})",
     "math.fract": lambda a, n: f"fract({a[0]})",
     "math.step": lambda a, n: f"step({a[0]}, {a[1]})",
-    "math.ping_pong": lambda a, n: f"abs(mod({a[0]}, 2.0 * ({a[1]})) - ({a[1]}))",
+    "math.ping_pong": lambda a, n: f"abs(mod(({a[0]}) - ({a[1]}), 2.0 * ({a[1]})) - ({a[1]}))",
     "vec.add": _bin("+"), "vec.sub": _bin("-"),
     "vec.mul": _bin("*"), "vec.div": _bin("/"),
     "vec.mod": lambda a, n: f"mod({a[0]}, {a[1]})",

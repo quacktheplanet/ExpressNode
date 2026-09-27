@@ -34,32 +34,45 @@ hand-written numpy to 0.0 error) and is the oracle, and the **OSL
 backend (M7)**, the **GLSL/Eevee backend (M8)**, and the **WGSL GPU
 compute backend (M9)** — the same expression compiled to a Cycles
 shader, a real-time GLSL shader, and a parallel GPU kernel, all
-validated structurally against the oracle (GLSL/WGSL `uint` noise is
-bit-exact with it). **275 passing tests (6 toolchain-skipped), no
-Blender required.** The M3/M4/M5 Blender verification and the
-M7/M8/M9 runtime parity checks are planned, checklisted steps (see
-`TESTING.md`); M6 has no runtime step. The whole arc is mapped in
-[`../ROADMAP.md`](../ROADMAP.md).
+validated against the oracle. **290 passing headless tests (6
+toolchain-skipped), no Blender required.**
+
+**Verified in Blender 5.0.1 and 5.1.2 (2026-09-27):** the M3/M4/M5
+checklists and the M7/M8/M9 runtime checks are automated in
+`tests/blender/` and `tests/gpu/` and all pass (275 checks). Every case
+is run for real: the Geometry Nodes modifier evaluated on a point cloud,
+OSL rendered in Cycles, GLSL run by Blender's gpu module, WGSL
+dispatched by WebGPU, and each result compared with the oracle. The
+first run found and fixed a long list of bugs (the Geometry Nodes
+executor wired sockets wrongly, most OSL didn't compile, noise didn't
+match); see "Blender and GPU checks" in `TESTING.md`. The whole arc is
+mapped in [`../ROADMAP.md`](../ROADMAP.md).
 
 One expression now targets **geometry (GN), correctness (numpy oracle),
 Cycles shading (OSL), real-time shading (GLSL), and GPU compute
 (WGSL)** — all from one IR.
 
 ```bash
-cd coding-nodes && python3 -m pytest tests/ -q          # 275 tests
+python3 -m pytest tests/ -q                             # 290 tests
 python3 tools/package_addon.py dist                     # build the zip
+python3 tests/blender/run_all.py --blender <blender.exe> [--blender ...] \
+    [--puppeteer <dir with node_modules/puppeteer-core>]  # Blender + GPU
 ```
 
 ## Install (Blender)
 
 1. `python3 tools/package_addon.py dist` → `dist/coding_nodes_addon.zip`
-   (bundles both packages; no manual `sys.path` setup needed).
+   (bundles the package; no manual `sys.path` setup needed). It's a
+   legacy add-on zip (bl_info), which Blender 5 still installs; tested
+   on 5.0.1 and 5.1.2.
 2. Blender › Preferences › Add-ons › **Install from Disk** → pick the
-   zip → enable **"Expression Nodes — Modifier"**.
+   zip → enable **"Expression Nodes"**.
 3. **Shape A (modifier):** select a mesh → Properties › Modifiers ›
    *Expression Nodes* panel → paste an expression → *Recompile*.
 4. **Shape B (node group):** open a Geometry Nodes editor → N-panel ›
-   *Expression Nodes* tab → *Add Expression Node Group*.
+   *Expression Nodes* tab → *Add Expression Node Group*. To change a
+   dropped group later, select it, edit the text and click *Update
+   Selected Group*; every node using that group updates.
 
 First expression to try (`examples/ripple.py`):
 

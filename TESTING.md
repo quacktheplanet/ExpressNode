@@ -1,7 +1,9 @@
 # Testing Guide
 
-How to verify Expression Nodes, milestone by milestone. Every step here is
-**headless** (no Blender) unless explicitly marked **[Blender]**.
+How to verify Expression Nodes, milestone by milestone. The pytest suite
+is **headless** (no Blender). The steps marked **[Blender]** and the
+runtime checklists are automated by `tests/blender/` and `tests/gpu/`
+(see "Blender and GPU checks" below).
 
 ## Prerequisites
 
@@ -21,6 +23,53 @@ python3 -m pytest tests/ -q
 ```
 
 Expected: all tests pass.
+
+## Blender and GPU checks (automated)
+
+Every **[Blender]** step and runtime checklist below is a script. One
+runner does them all, on each Blender you give it:
+
+```bash
+python tests/blender/run_all.py \
+    --blender "C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" \
+    --blender "C:/.../blender-5.0.1-windows-x64/blender.exe" \
+    --puppeteer <folder with node_modules/puppeteer-core>
+```
+
+| Script | Covers | Runs |
+|---|---|---|
+| `tests/blender/bl_gn.py` | M3/M4/M5 checklists; every Geometry Nodes case evaluated on a point cloud and compared with the oracle | `blender -b` |
+| `tests/blender/bl_osl.py` | M7: every shader compiled by Blender's `oslc`; Cycles renders compared with the oracle at the exact shading points | `blender -b` |
+| `tests/blender/bl_gui.py` | M8: GLSL compiled by Blender's `gpu` module, run over a float buffer, compared with the oracle; Shape B operators and panels in a real UI | small unfocused window, quits itself |
+| `tests/blender/bl_install.py` | 5.1: the packaged zip installs, enables, runs, disables (in a throwaway profile; refuses a real one) | `blender -b` |
+| `tests/gpu/wgsl_parity.py` | M9: WGSL compiled and dispatched by WebGPU in headless Edge/Chrome; parity; 1M points in one dispatch | Node + puppeteer-core |
+
+The cases (`tests/blender/cases.py`) cover every op the language has:
+arithmetic, all math functions, rounding, clamp/mix/smoothstep/step/
+fract/ping_pong, comparisons, and/or/not, if-else, every vector op,
+swizzles, nested helper functions (two levels), the built-in variables,
+attr/set_attr/obj, noise and voronoi. Tolerance is 2e-4 against the
+float64 oracle; a point that sits exactly on a floor/step edge is
+forgiven only if the oracle itself jumps there.
+
+**Results, 2026-09-27** (Windows 11, NVIDIA RTX A4500):
+
+| | Blender 5.0.1 | Blender 5.1.2 |
+|---|---|---|
+| Geometry Nodes (13 parity cases + checklist) | 46/46 | 46/46 |
+| OSL (12 cases: oslc, Cycles compile, parity) | 37/37 | 37/37 |
+| GLSL + Shape B UI (12 cases, OpenGL) | 32/32 | 32/32 |
+| Packaged zip install | 9/9 | 9/9 |
+| WGSL on WebGPU (Edge, 12 cases + 1M points) | 27/27 (browser, not Blender) | |
+
+Largest errors against the oracle: Geometry Nodes 6e-7; OSL, GLSL and
+WGSL 2e-6 for noise-free cases (GLSL 7e-5 on the asin/acos case, float32
+trig). Noise and voronoi match the oracle to 2e-6 in OSL, GLSL and WGSL;
+the curl-noise example differs by up to 3e-3 because its central
+differences (eps = 0.001, scaled by 1/(2 eps)) magnify float32 rounding
+about 200x, so that one case is checked at 1e-2. 1M points run in one
+WGSL dispatch in about 13 ms. Geometry Nodes can't match the oracle for
+noise() and voronoi() (it uses Blender's own noise, by design).
 
 ## Run one milestone at a time
 
@@ -139,10 +188,25 @@ print(json.dumps(plan_source(src, inline_threshold=2).describe(),
 PY
 ```
 
-## Milestone 3 — Blender verification **[Blender]** (the planned test)
+## Milestone 3 — Blender verification **[Blender]**
 
-Everything above is headless. The remaining step runs the executor in
-Blender. Do these in order; each builds on the previous.
+Automated by `tests/blender/bl_gn.py`; passes on 5.0.1 and 5.1.2. The
+steps below are what it does, and still the way to look for yourself.
+
+**Findings (2026-09-27), all fixed:** the executor ignored socket names,
+so every two-input op got both operands on its first input and every
+component read took X; negation never set its -1; `fract` and
+`ping_pong` used operation names Blender doesn't have; `%` used
+truncated modulo (Python's is floored); `log` used Blender's default
+base 0.5; Mix clamped its factor; the Switch node's default type differs
+between 5.0 and 5.1; `<=`, `>=`, `!=`, `step`, `//` and `reflect` computed
+something else; parameter defaults weren't set, so `freq`/`amp` started
+at 0; noise had Blender's default scale 5 and no time input; `attr()`
+never set the attribute name; `set_attr()` did nothing. The planner
+wired only the first use of a value entering a helper group and
+threaded one nesting level only. Rebuilding deleted and recreated the
+trees, breaking anything that used them, and two objects whose
+expressions shared a function name overwrote each other's trees.
 
 ### Setup
 
@@ -162,8 +226,11 @@ Blender. Do these in order; each builds on the previous.
 1. Add a subdivided plane; keep it active.
 2. Paste `examples/ripple.py` into the panel text field.
 3. Click *Recompile Expression*.
-- Expected: a `CodingNodesExpression` Nodes modifier appears, its node
-  group is `Expr_ripple`, with `freq` and `amp` as modifier inputs.
+- Expected: a `CodingNodesExpression` Nodes modifier appears (the name is
+  kept from the Coding Nodes days so old files still work), its node
+  group is `Modifier_Expr_ripple [Plane]` wrapping `Expr_ripple [Plane]`
+  (one set of trees per object), with `freq` and `amp` as modifier
+  inputs at their defaults 6.0 and 0.3.
 - Scrub the timeline → the plane ripples; the wave drifts with `t`.
 - Change `freq` to 12 → tighter waves on next recompile.
 - Open `Expr_ripple` in the Geometry Nodes editor → confirm a small
@@ -181,10 +248,11 @@ Blender. Do these in order; each builds on the previous.
 
 1. New subdivided icosphere (subdivisions ≈ 3).
 2. Paste `examples/curl_noise.py`; recompile.
-- Expected: node group `Expr_curl` containing **twelve `n_*` group
-  instances**, not ~180 loose math nodes.
+- Expected: node group `Expr_curl [Icosphere]` containing **twelve `n_*`
+  group instances**, not ~180 loose math nodes.
 - Open one `n_1` group → confirm it has the `n` body (offset add →
-  Noise) with `in_0`/`in_1` inputs and one float output.
+  Noise) with inputs for the offset point, the seed and `scale`, and one
+  float output.
 - Scrub the timeline → the icosphere swirls organically.
 - Adjust `scale` / `strength` modifier inputs → visible change on
   recompile.
@@ -232,9 +300,12 @@ node tree is identical; the only difference is where it lands.
 
 **M4 headless done-criterion:** `tests/m4_nodegroup/` is green.
 
-### Milestone 4 — Blender verification **[Blender]** (the planned test)
+### Milestone 4 — Blender verification **[Blender]**
 
-Do these after the M3 checklist; Shape B sits on the same executor.
+Automated by `tests/blender/bl_gn.py` (the group, dropped into a host
+tree and compared with the oracle) and `tests/blender/bl_gui.py` (the
+operators in a real Node Editor, the panel drawing); passes on 5.0.1 and
+5.1.2.
 
 #### Test 4.1 — operator + panel appear
 
@@ -266,14 +337,16 @@ Do these after the M3 checklist; Shape B sits on the same executor.
 1. Type a bad expression; click the button.
 - Expected: red error box in the panel, no node added, no crash.
 
-#### Soft spots to record
+#### Soft spots (resolved 2026-09-27)
 
-- **In-place re-edit of a dropped group.** First cut creates a fresh
-  group datablock per add. Re-pointing every existing instance of a
-  group when its expression changes is the M4 follow-up; note the
-  desired UX after 4.2 works.
-- **2D-cursor placement.** The new node currently lands at origin;
-  placement polish is M5.
+- **In-place re-edit of a dropped group.** Select the group node, edit
+  the text, click *Update Selected Group*: the group is rebuilt in place,
+  so every node using it updates and links into it are kept (when the
+  inputs and outputs are unchanged). Adding a group whose function name
+  is already taken by a *different* expression makes `Expr_name.001`
+  instead of overwriting.
+- **2D-cursor placement.** The new node lands at the editor's cursor
+  and becomes the active node.
 
 ### Outcome
 
@@ -306,9 +379,10 @@ cd coding-nodes && python3 tools/package_addon.py dist
 # -> dist/coding_nodes_addon.zip
 ```
 
-### Milestone 5 — Blender verification **[Blender]** (the planned test)
+### Milestone 5 — Blender verification **[Blender]**
 
-Run after the M3/M4 checklists.
+Automated by `tests/blender/bl_install.py` (5.1) and
+`tests/blender/bl_gn.py` (5.2–5.4); passes on 5.0.1 and 5.1.2.
 
 #### Test 5.1 — install the packaged zip
 
@@ -325,8 +399,8 @@ Run after the M3/M4 checklists.
 - Expected (mode `offset`, the modifier default): the modifier tree has
   **Geometry in → Set Position → Geometry out**, the expression group
   instanced between, `freq`/`amp` as modifier inputs; the plane ripples.
-- Switch to `absolute` (when the mode selector lands in the M5
-  follow-up): the Result drives absolute position instead of an offset.
+- Switch the panel's *Apply* selector to `Absolute`: the Result places
+  each point instead of moving it.
 
 #### Test 5.3 — parameter values survive a recompile
 
@@ -341,15 +415,15 @@ Run after the M3/M4 checklists.
 - Trigger several cases from the `test_error_quality.py` matrix; confirm
   the panel shows the message + the offending line, no crash.
 
-#### Soft spots to record
+#### Soft spots
 
-- **`absolute` mode UI.** The plan supports `raw`/`offset`/`absolute`;
-  the modifier currently hardcodes `offset`. A mode dropdown is the M5
-  follow-up.
+- **`absolute` mode UI.** Done: an Offset/Absolute selector in the panel.
 - **`normal` mode.** Scalar-Result-along-normal is intentionally not in
-  `APPLY_MODES` yet (type handling); add when a case needs it.
-- **Reconcile wiring.** `reconcile()` is unit-proven; confirm the
-  modifier actually calls it across a rebuild and re-applies values.
+  `APPLY_MODES` yet (type handling); add when a case needs it. A scalar
+  Result in offset mode currently moves points by (r, r, r).
+- **Reconcile wiring.** Done: the modifier calls `reconcile()` on every
+  rebuild; a tuned value survives body edits and new parameters, and a
+  renamed parameter starts at its default (checked in Blender).
 
 ### Outcome
 
@@ -418,10 +492,15 @@ print(osl_source(open("coding-nodes/examples/ripple.py").read()))
 PY
 ```
 
-### Milestone 7 — OSL-runtime checklist **[oslc / testshade / Blender]**
+### Milestone 7 — OSL-runtime checklist **[oslc / Blender]**
 
-Run where the OSL toolchain exists (no Blender GUI needed for the first
-two):
+Automated by `tests/blender/bl_osl.py`, using the `oslc` bundled with
+Blender (no separate toolchain) and Cycles renders instead of
+`testshade`; passes on 5.0.1 and 5.1.2. Found and fixed: most generated
+shaders didn't compile (OSL can't index a parenthesised expression,
+`(v0)[1]`), two-component swizzles built an invalid `vector(a, b)`, and
+the noise hash used signed shifts and dropped a bit, so noise didn't
+match. It now matches the oracle.
 
 1. **Compile.** `oslc shader.osl` succeeds for both examples. (The
    pytest in `test_osl_compile.py` does this automatically when `oslc`
@@ -437,10 +516,11 @@ two):
 4. **In Cycles (Blender).** Assign the shader in a Cycles material;
    confirm it drives the expected channel and animates with `Time`.
 
-#### Soft spots to record
+#### Soft spots
 
-- **Lattice-hash bit-parity** across Python/OSL for `noise()`/
-  `voronoi()` (item 3).
+- **Lattice-hash parity** across Python/OSL: resolved. OSL emulates
+  uint32 (logical shifts, unsigned read), and voronoi hashes four values
+  like the oracle (all three shader backends hashed five).
 - **`attr.read`/`obj.read`** currently emit neutral defaults; wiring to
   OSL `getattribute()` is the M7 follow-up.
 
@@ -472,7 +552,13 @@ print(glsl_source(open("coding-nodes/examples/ripple.py").read()))
 PY
 ```
 
-### Milestone 8 — GLSL-runtime checklist **[glslangValidator / Eevee]**
+### Milestone 8 — GLSL-runtime checklist **[Blender gpu module]**
+
+Automated by `tests/blender/bl_gui.py`: the generated function compiled
+by Blender's own GLSL toolchain (`gpu.shader.create_from_info`) and run
+over a 64x64 float offscreen buffer; passes on 5.0.1 and 5.1.2 (OpenGL).
+Item 4 (use in an EEVEE material) isn't possible as written: EEVEE has
+no custom-GLSL material node, so the gpu-module run stands in for it.
 
 1. **Compile.** `glslangValidator shader.frag` succeeds for both
    examples (the pytest does this automatically when on PATH).
@@ -522,7 +608,14 @@ print(wgsl_source(open("coding-nodes/examples/ripple.py").read()))
 PY
 ```
 
-### Milestone 9 — GPU-runtime checklist **[naga / tint / wgpu]**
+### Milestone 9 — GPU-runtime checklist **[WebGPU]**
+
+Automated by `tests/gpu/wgsl_parity.py`: kernels compiled and dispatched
+by WebGPU in headless Edge (the browser's compiler stands in for
+naga/tint); all parity items pass and 1M points run in one dispatch in
+about 13 ms. The host-side layout: `in_P` flat xyz f32, `out_R` flat xyz
+f32, `U` = Time, Frame, DeltaTime (f32), Seed (i32), then each parameter
+as f32 in declaration order, padded to 16 bytes.
 
 1. **Validate.** `naga shader.wgsl` (or `tint`) succeeds for both
    examples (the pytest does this when on PATH).

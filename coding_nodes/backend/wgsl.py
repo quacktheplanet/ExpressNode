@@ -52,6 +52,19 @@ fn cn_h01(a: u32, b: u32, c: u32, d: u32, e: u32) -> f32 {
     return f32(cn_hash(a, b, c, d, e)) / 4294967296.0;
 }
 
+// Voronoi's feature points hash four values, like the oracle.
+fn cn_h01_4(a: u32, b: u32, c: u32, d: u32) -> f32 {
+    var h: u32 = 0x9E3779B1u;
+    var p = array<u32, 4>(a, b, c, d);
+    for (var i: i32 = 0; i < 4; i = i + 1) {
+        h = (h ^ p[i]) * 0x85EBCA77u;
+        h = h ^ (h >> 13u);
+    }
+    h = (h ^ (h >> 15u)) * 0xC2B2AE3Du;
+    h = h ^ (h >> 13u);
+    return f32(h) / 4294967296.0;
+}
+
 fn cn_fade(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 
 fn cn_slice(x: f32, y: f32, z: f32, iw: i32, seed: i32) -> f32 {
@@ -98,9 +111,9 @@ fn cn_voronoi_f1(p: vec3<f32>, seed: i32) -> f32 {
         let cx: i32 = bx + dx;
         let cy: i32 = by + dy;
         let cz: i32 = bz + dz;
-        let fx = cn_h01(bitcast<u32>(cx), bitcast<u32>(cy), bitcast<u32>(cz), S, 0u);
-        let fy = cn_h01(bitcast<u32>(cy), bitcast<u32>(cz), bitcast<u32>(cx), S, 0u);
-        let fz = cn_h01(bitcast<u32>(cz), bitcast<u32>(cx), bitcast<u32>(cy), S, 0u);
+        let fx = cn_h01_4(bitcast<u32>(cx), bitcast<u32>(cy), bitcast<u32>(cz), S);
+        let fy = cn_h01_4(bitcast<u32>(cy), bitcast<u32>(cz), bitcast<u32>(cx), S);
+        let fz = cn_h01_4(bitcast<u32>(cz), bitcast<u32>(cx), bitcast<u32>(cy), S);
         let f = vec3<f32>(f32(cx) + fx, f32(cy) + fy, f32(cz) + fz);
         best = min(best, distance(p, f));
     }}}
@@ -159,7 +172,7 @@ _TEMPLATES = {
     "math.atan2": lambda a, n: f"atan2({a[0]}, {a[1]})",
     "math.sqrt": _fn("sqrt"), "math.exp": _fn("exp"), "math.log": _fn("log"),
     "math.abs": _fn("abs"), "math.floor": _fn("floor"),
-    "math.ceil": _fn("ceil"), "math.round": _fn("round"),
+    "math.ceil": _fn("ceil"), "math.round": lambda a, n: f"floor({a[0]} + 0.5)",
     "math.sign": _fn("sign"),
     "math.min": lambda a, n: f"min({a[0]}, {a[1]})",
     "math.max": lambda a, n: f"max({a[0]}, {a[1]})",
@@ -168,7 +181,9 @@ _TEMPLATES = {
     "math.smoothstep": lambda a, n: f"smoothstep({a[0]}, {a[1]}, {a[2]})",
     "math.fract": lambda a, n: f"fract({a[0]})",
     "math.step": lambda a, n: f"step({a[0]}, {a[1]})",
-    "math.ping_pong": lambda a, n: f"abs(({a[0]}) % (2.0 * ({a[1]})) - ({a[1]}))",
+    "math.ping_pong": lambda a, n: (
+        f"abs((({a[0]}) - ({a[1]})) - 2.0 * ({a[1]}) * "
+        f"floor((({a[0]}) - ({a[1]})) / (2.0 * ({a[1]}))) - ({a[1]}))"),
     "vec.add": _bin("+"), "vec.sub": _bin("-"),
     "vec.mul": _bin("*"), "vec.div": _bin("/"),
     "vec.mod": lambda a, n: f"({a[0]} - {a[1]} * floor({a[0]} / {a[1]}))",

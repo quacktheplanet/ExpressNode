@@ -408,7 +408,19 @@ class ExpressionParser:
                 f"Unsupported expression: {type(node).__name__}.",
                 span=SourceSpan.from_ast(node, self.source_lines),
             )
-        return method(node, scope)
+        try:
+            return method(node, scope)
+        except TypeError as e:
+            # The graph refuses a link between incompatible sockets (e.g.
+            # a string in arithmetic). Report it at this expression.
+            if "SocketType.STRING" in str(e):
+                msg = ("Text can't be used as a value; strings only name "
+                       "things, as in attr('name') or obj('name', 'field').")
+            else:
+                msg = f"Type mismatch: {e}"
+            raise CompileError(
+                msg, span=SourceSpan.from_ast(node, self.source_lines),
+            ) from None
 
     def _emit(self, op: str, *, params: dict | None = None,
               input_sockets: tuple = (),
