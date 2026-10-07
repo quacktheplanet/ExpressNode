@@ -40,6 +40,11 @@ shader, a real-time GLSL shader, and a parallel GPU kernel, all
 validated against the oracle. **290 passing headless tests (6
 toolchain-skipped), no Blender required.**
 
+**Blender 5.2 (2026-10-07, branch `blender-5.2`):** modifier inputs moved from ID properties to RNA in 5.2;
+`backend/modifier.py` reads and writes them either way. On Linux (RTX 5090, Vulkan) the whole runner passes
+on 5.0.1, 5.1.2 and 5.2.2: 411 of 411 checks, WGSL included (Chrome in a window; headless Chrome on Linux
+only has a software WebGPU adapter).
+
 **Verified in Blender 5.0.1 and 5.1.2 (2026-09-27):** the M3/M4/M5
 checklists and the M7/M8/M9 runtime checks are automated in
 `tests/blender/` and `tests/gpu/` and all pass (275 checks). Every case
@@ -119,7 +124,7 @@ frontend and UX shells live here.
 
 ## Target platform
 
-Blender 5.0 or newer (tested on 5.0.1 and 5.1.2). Python 3.11+.
+Blender 5.0 or newer (tested on 5.0.1, 5.1.2 and 5.2.2). Python 3.11+.
 
 ## License
 

@@ -31,6 +31,20 @@ def _input_items(tree):
             and item.socket_type != "NodeSocketGeometry"]
 
 
+def get_input(mod, ident):
+    """A Geometry Nodes modifier input's value (5.2 moved inputs from ID properties to RNA)."""
+    if hasattr(mod, "properties"):
+        return getattr(mod.properties.inputs, ident).value
+    return mod[ident]
+
+
+def set_input(mod, ident, value):
+    if hasattr(mod, "properties"):
+        getattr(mod.properties.inputs, ident).value = value
+    else:
+        mod[ident] = value
+
+
 def _modifier_values(mod) -> dict:
     """name -> value for the modifier's current expression inputs."""
     values = {}
@@ -39,10 +53,10 @@ def _modifier_values(mod) -> dict:
         return values
     for item in _input_items(tree):
         try:
-            v = mod[item.identifier]
-        except KeyError:
+            v = get_input(mod, item.identifier)
+        except (KeyError, AttributeError):
             continue
-        values[item.name] = list(v) if hasattr(v, "to_list") else v
+        values[item.name] = list(v) if hasattr(v, "to_list") or type(v).__name__ == "bpy_prop_array" else v
     return values
 
 
@@ -86,7 +100,7 @@ def _apply(obj, source: str, apply_mode: str = "offset",
     for item in _input_items(tree):
         if item.name in values and values[item.name] is not None:
             try:
-                mod[item.identifier] = values[item.name]
+                set_input(mod, item.identifier, values[item.name])
             except (TypeError, ValueError):
                 pass
     obj.update_tag()

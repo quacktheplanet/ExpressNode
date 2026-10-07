@@ -22,8 +22,25 @@ const require = createRequire(path.join(base, "package.json"));
 const puppeteer = require("puppeteer-core");
 
 const job = JSON.parse(readFileSync(jobPath, "utf8"));
-const browserPath = process.env.BROWSER ||
-  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+import { existsSync, readdirSync } from "node:fs";
+import os from "node:os";
+
+// BROWSER wins; else Edge on Windows, else Chrome for Testing under ~/browsers/chrome, else system Chrome.
+function findBrowser() {
+  if (process.env.BROWSER) return process.env.BROWSER;
+  const tries = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"];
+  const cft = path.join(os.homedir(), "browsers", "chrome");
+  if (existsSync(cft)) {
+    for (const d of readdirSync(cft).sort().reverse()) {
+      tries.push(path.join(cft, d, "chrome-linux64", "chrome"));
+    }
+  }
+  tries.push("/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+  return tries.find((p) => existsSync(p)) || tries[0];
+}
+const browserPath = findBrowser();
+const windows = process.platform === "win32";
 
 // WebGPU needs a secure context: serve a blank page from localhost.
 const server = http.createServer((req, res) => {
@@ -35,9 +52,10 @@ const port = server.address().port;
 
 const browser = await puppeteer.launch({
   executablePath: browserPath,
-  headless: "new",
-  args: ["--enable-unsafe-webgpu", "--use-angle=d3d11",
-         "--ignore-gpu-blocklist"],
+  // headless Chrome on Linux has only a software WebGPU adapter; with a display (DISPLAY) use a window
+  headless: windows || !process.env.DISPLAY ? "new" : false,
+  args: ["--enable-unsafe-webgpu", windows ? "--use-angle=d3d11" : "--use-angle=vulkan",
+         "--enable-features=Vulkan", "--ignore-gpu-blocklist", "--no-sandbox"],
 });
 try {
   const page = await browser.newPage();

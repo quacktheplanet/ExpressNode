@@ -59,6 +59,9 @@ CASES = [
             "                + atan(P.x))\n"
         ),
         "backends": ALL,
+        # GLSL leaves asin/acos/atan precision to the driver: NVIDIA's Linux driver (RTX 5090) is off by
+        # up to 5e-4 at the edges of the clamp, where the sum's slope is steep
+        "atol": 1e-3,
     },
     {
         "name": "shaping",

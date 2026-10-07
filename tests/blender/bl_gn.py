@@ -116,7 +116,7 @@ def set_inputs(mod, values: dict):
     for item in mod.node_group.interface.items_tree:
         if (item.item_type == "SOCKET" and item.in_out == "INPUT"
                 and item.name in values):
-            mod[item.identifier] = values[item.name]
+            cn_mod.set_input(mod, item.identifier, values[item.name])
     mod.id_data.update_tag()
 
 
@@ -124,7 +124,7 @@ def input_value(mod, name):
     for item in mod.node_group.interface.items_tree:
         if (item.item_type == "SOCKET" and item.in_out == "INPUT"
                 and item.name == name):
-            return mod[item.identifier]
+            return cn_mod.get_input(mod, item.identifier)
     raise KeyError(name)
 
 
