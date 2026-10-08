@@ -15,8 +15,9 @@ DEFAULT_EXPRESSION = (
     "    return vec3(0.0, 0.0, sin(P.x * freq + t) * amp)\n"
 )
 
-# Kept from the Coding Nodes days so existing files keep their modifier.
-MODIFIER_NAME = "CodingNodesExpression"
+# The modifier ExpressNode adds and finds again. Files from the old add-on
+# (which named it "CodingNodesExpression") are renamed on load: see migrate.py.
+MODIFIER_NAME = "ExpressNode"
 APPLY_MODE_ITEMS = [
     ("offset", "Offset", "Move each point by the expression's result"),
     ("absolute", "Absolute", "Place each point at the expression's result"),

@@ -1,5 +1,7 @@
 # ExpressNode — Scope & Vision
 
+> **Design and development notes,** written while ExpressNode was being built (it was called Coding Nodes then). Kept for anyone curious about how it works; some file paths and statuses describe the code at the time. For using ExpressNode, start with the [README](../../README.md).
+
 ## Vision
 
 > **Type an equation, get a clean Geometry Nodes subtree.**

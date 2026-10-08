@@ -7,6 +7,7 @@ render. What the old add-on stored under its own names is copied to the new ones
     object   coding_nodes_expression / _apply_mode / _error  ->  expressnode_*
     scene    coding_nodes_group_expression / _group_error    ->  expressnode_*
     trees    "coding_nodes_params", "coding_nodes_source"     ->  "expressnode_*"
+    modifier "CodingNodesExpression"                          ->  "ExpressNode"
 
 The old values are removed after copying, so a file is migrated once. Nothing
 else needs migrating: operator ids are not stored in .blend files.
@@ -20,6 +21,8 @@ NEW = "expressnode_"
 OBJECT_KEYS = ("expression", "apply_mode", "error")
 SCENE_KEYS = ("group_expression", "group_error")
 TREE_KEYS = ("params", "source")
+OLD_MODIFIER = "Coding" + "NodesExpression"
+NEW_MODIFIER = "ExpressNode"
 
 
 def _stores(id_block):
@@ -56,6 +59,10 @@ def migrate_data(data) -> int:
     for obj in data.objects:
         for key in OBJECT_KEYS:
             moved += _move_idprop(obj, key)
+        mod = obj.modifiers.get(OLD_MODIFIER)
+        if mod is not None and obj.modifiers.get(NEW_MODIFIER) is None:
+            mod.name = NEW_MODIFIER
+            moved += 1
     for scene in data.scenes:
         for key in SCENE_KEYS:
             moved += _move_idprop(scene, key)

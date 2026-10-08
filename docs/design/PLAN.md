@@ -1,5 +1,7 @@
 # ExpressNode — Build Plan
 
+> **Design and development notes,** written while ExpressNode was being built (it was called Coding Nodes then). Kept for anyone curious about how it works; some file paths and statuses describe the code at the time. For using ExpressNode, start with the [README](../../README.md).
+
 Concrete steps to ship the first version. Ordered so each step leaves
 a working artifact.
 
@@ -44,7 +46,7 @@ Each milestone leaves a working, tested artifact.
 > Blender/runtime parity checklists pending (`TESTING.md`); M6 has no
 > runtime step.
 > Run `python3 -m pytest tests/` (275 headless, 6 toolchain-skipped;
-> see `TESTING.md`). Whole arc: `../ROADMAP.md`.
+> see `TESTING.md`). 
 
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
 
@@ -189,7 +191,7 @@ becomes the oracle for validating the OSL/GLSL/GPU backends.
 
 ### M7 — OSL backend ✅ headless
 
-First backend off the multi-backend trajectory (ROADMAP §4b): the same
+First backend off the multi-backend trajectory: the same
 expression compiled to an Open Shading Language shader for Cycles.
 
 **Headless — built + tested:**
@@ -213,7 +215,7 @@ compile + oracle parity where the toolchain exists. See `docs/osl.md`.
 
 ### M8 — GLSL / Eevee backend ✅ headless
 
-Second backend off ROADMAP §4b: the same expression as a GLSL fragment
+Second backend of the multi-backend plan: the same expression as a GLSL fragment
 shader for real-time / Eevee shading.
 
 **Headless — built + tested:**
@@ -235,7 +237,7 @@ parity where the toolchain exists. See `docs/glsl.md`.
 
 ### M9 — WGSL GPU compute backend ✅ headless
 
-Third backend off ROADMAP §4b and the "fast at scale" tier: the same
+Third backend of the multi-backend plan and the "fast at scale" tier: the same
 expression as a WGSL compute kernel — one GPU invocation per point over
 flat `array<f32>` buffers.
 

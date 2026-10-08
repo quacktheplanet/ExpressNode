@@ -134,7 +134,7 @@ at `register()` time so the module imports without bpy.
 
 ## Related
 
-- `../PLAN.md` — milestones and status
-- `../TESTING.md` — the Blender verification checklist
+- `design/PLAN.md` — milestones and status
+- `../TESTING.md` / `design/TESTING-CHECKLIST.md` — the Blender verification checklist
 - `grouping.md` — the M2 region tree this consumes
-- `../SPEC.md` — the overall architecture
+- `design/SPEC.md` — the overall architecture

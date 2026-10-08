@@ -1,126 +1,123 @@
 # ExpressNode
 
-*Formerly Coding Nodes / Expression Nodes. The name you see changed; the Python package
-(`expressnode`), the add-on module and the operator ids did not, so existing files keep working.*
+**Type a maths expression, get a clean Geometry Nodes tree.**
 
-A Blender addon that compiles a **Python expression** into a clean,
-group-wrapped **Geometry Nodes subtree**. The user types math; the
-addon produces a readable algorithmic node graph.
+ExpressNode is a Blender extension for people who use Geometry Nodes and would rather write
+`sin(r * freq - t) * amp` than wire up twenty Math nodes. You type a short Python-style function;
+ExpressNode compiles it into a native, readable Geometry Nodes node group, with your function's
+parameters as inputs. The result is ordinary Geometry Nodes: it renders in Cycles and EEVEE,
+works from the command line, and opens in Blender without the extension installed.
 
-Two shapes, one compiler:
+![An expression, the ripple it makes, and the node tree ExpressNode generated](docs/readme_ripple.png)
 
-- **Expression Modifier.** A modifier with a text field. Type an
-  equation; see the result. Never open the GN editor unless you want
-  to.
-- **Expression Node Group.** A node group you drop into any existing
-  GN tree. Same compiler. Embeddable in larger graphs.
+*Left: the expression. Top: the ripple it makes on a grid. Bottom: the generated tree, one
+`Expr_ripple` group with `freq` and `amp` as inputs. Right: the ExpressNode modifier panel.*
 
-## Quick example
+## Install
+
+1. Download `expressnode-<version>.zip` from the
+   [Releases](https://github.com/quacktheplanet/ExpressNode/releases) page, or build it yourself with
+   `python tools/package_addon.py dist`.
+2. In Blender 5.0 or newer: **Edit › Preferences › Get Extensions › ⌄ › Install from Disk**, then
+   pick the zip.
+
+## Quick start
+
+### As a modifier
+
+1. Select a mesh with some resolution (for example a Grid with 100 × 100 subdivisions).
+2. **Properties › Modifiers › ExpressNode**: paste an expression and click **Recompile Expression**.
+3. Choose how the result is applied: **Offset** moves each point by the result, **Absolute** places
+   it there, and **Normal** pushes it along its normal by a number.
 
 ```python
-def ripple(P, t):
-    return vec3(0, 0, sin(P.x * 6 + t) * 0.3)
+def ripple(P, t, freq=6.0, amp=0.25):
+    r = length(vec3(P.x, P.y, 0.0))
+    return vec3(0.0, 0.0, sin(r * freq - t * 2.0) * amp / (1.0 + r))
 ```
 
-Type that into the Expression Modifier. The mesh ripples. The
-generated GN tree contains one `ripple` group node with the math
-inside — not a wall of `Math (MULTIPLY)` nodes.
+Play the timeline and the grid ripples outwards. `freq` and `amp` appear on the modifier, where you
+can tweak or animate them. Recompiling keeps the values you've tuned.
 
-## Status
+### As a node group in your own tree
 
-The full **M1–M7 headless build is complete** — frontend, grouping,
-backend (op emitters + emission plan + executor), both user-facing
-shapes (modifier + node group), apply modes, parameter reconciliation,
-error triage, doc guard, addon packaging, the **numpy reference
-evaluator (M6)** that *proves the math is correct* (ripple matches
-hand-written numpy to 0.0 error) and is the oracle, and the **OSL
-backend (M7)**, the **GLSL/Eevee backend (M8)**, and the **WGSL GPU
-compute backend (M9)** — the same expression compiled to a Cycles
-shader, a real-time GLSL shader, and a parallel GPU kernel, all
-validated against the oracle. **290 passing headless tests (6
-toolchain-skipped), no Blender required.**
+1. Open a Geometry Nodes editor and press **N** for the sidebar: **ExpressNode** tab.
+2. Type an expression and click **Add Expression Node Group**. A group node drops into your tree,
+   with an input for each parameter and a **Result** output to wire into anything.
+3. To change it later, select the group, edit the text and click **Update Selected Group**. Every
+   copy of that group updates, and its links stay connected.
 
-**Blender 5.2 (2026-10-07, branch `blender-5.2`):** modifier inputs moved from ID properties to RNA in 5.2;
-`backend/modifier.py` reads and writes them either way. On Linux (RTX 5090, Vulkan) the whole runner passes
-on 5.0.1, 5.1.2 and 5.2.2: 411 of 411 checks, WGSL included (Chrome in a window; headless Chrome on Linux
-only has a software WebGPU adapter).
+## The expression language, in brief
 
-**Verified in Blender 5.0.1 and 5.1.2 (2026-09-27):** the M3/M4/M5
-checklists and the M7/M8/M9 runtime checks are automated in
-`tests/blender/` and `tests/gpu/` and all pass (275 checks). Every case
-is run for real: the Geometry Nodes modifier evaluated on a point cloud,
-OSL rendered in Cycles, GLSL run by Blender's gpu module, WGSL
-dispatched by WebGPU, and each result compared with the oracle. The
-first run found and fixed a long list of bugs (the Geometry Nodes
-executor wired sockets wrongly, most OSL didn't compile, noise didn't
-match); see "Blender and GPU checks" in `TESTING.md`. The whole arc is
-mapped in [`../ROADMAP.md`](../ROADMAP.md).
+- **A function** `def name(P, t, a=1.0, b=2.0): ...`. Parameters with defaults become inputs. The
+  body can use assignments, `if` / `else`, and helper functions you define, which become nested
+  groups.
+- **Built-in inputs:** `P` (position), `N` (normal), `i` (index), `t` (time in seconds), `frame`,
+  `dt`.
+- **Maths:** `sin cos tan asin acos atan atan2 sqrt pow exp log abs sign floor ceil round fract mod
+  min max clamp mix step smoothstep ping_pong`.
+- **Vectors:** `vec2 vec3 vec4 length distance dot cross normalize reflect`, and `.x .y .z`.
+- **Noise:** `noise` and `voronoi`, which are Blender's own.
+- **Attributes and objects:** `attr('name')`, `set_attr('name', value)`, `obj('Name', 'field')`.
 
-One expression now targets **geometry (GN), correctness (numpy oracle),
-Cycles shading (OSL), real-time shading (GLSL), and GPU compute
-(WGSL)** — all from one IR.
+Unsupported Python (strings in maths, lambdas, imports and so on) gives a clear error that points at
+the line and column. The full list is in
+[docs/expression-reference.md](docs/expression-reference.md), and worked examples are in
+[docs/examples/](docs/examples/).
+
+## One expression, four outputs
+
+The same parsed expression can be compiled to several targets:
+
+| Target | What it's for |
+|---|---|
+| **Geometry Nodes** | The main output: native node groups, as above. |
+| **OSL** | A Cycles shader, for the same maths as a texture or volume at render time. |
+| **GLSL** | Blender's GPU module, for real-time preview and viewport drawing. |
+| **WGSL** | WebGPU compute, for running the maths in a browser over millions of points. |
+
+All four are checked against a reference evaluator written in numpy, so they agree with each other.
+From Python:
+
+```python
+import expressnode
+src = open("examples/ripple.py").read()
+expressnode.osl_source(src)      # Cycles OSL
+expressnode.glsl_source(src)     # GLSL
+expressnode.wgsl_source(src)     # WGSL
+```
+
+ExpressNode also powers **Bake to Nodes** in [CodeNodes](https://github.com/quacktheplanet/CodeNodes),
+which turns GPU code into native Geometry Nodes. Other add-ons can use it the same way:
+`import expressnode`.
+
+## Upgrading from Coding Nodes / Expression Nodes
+
+ExpressNode used to be called Coding Nodes. Files made with the old add-on still open and render,
+because the generated trees are plain Geometry Nodes. When ExpressNode loads such a file, it moves
+the old add-on's settings to the new names: each object's expression, apply mode and modifier name,
+the scene's group expression, and the generated groups' markers. Install ExpressNode, then remove
+the old add-on.
+
+## Testing
 
 ```bash
-python3 -m pytest tests/ -q                             # 290 tests
-python3 tools/package_addon.py dist                     # build the zip
-python3 tests/blender/run_all.py --blender <blender.exe> [--blender ...] \
-    [--puppeteer <dir with node_modules/puppeteer-core>]  # Blender + GPU
+python -m pytest tests -q                        # ~300 tests, no Blender needed
+python tests/blender/run_all.py --blender <path/to/blender> [--blender ...] \
+    [--puppeteer <dir with node_modules/puppeteer-core>]
 ```
 
-## Install (Blender)
+The second command runs the checks inside each Blender you give it: Geometry Nodes against the
+reference, OSL rendered in Cycles, GLSL on the GPU module, installing the extension zip, and old-file
+migration. With `--puppeteer` it also checks WGSL in a browser. Release checks cover Blender 5.0.1,
+5.1.2 and 5.2.2. See [TESTING.md](TESTING.md).
 
-1. `python3 tools/package_addon.py dist` → `dist/expressnode_addon.zip`
-   (bundles the package; no manual `sys.path` setup needed). It's a
-   legacy add-on zip (bl_info), which Blender 5 still installs; tested
-   on 5.0.1 and 5.1.2.
-2. Blender › Preferences › Add-ons › **Install from Disk** → pick the
-   zip → enable **"ExpressNode"**.
-3. **Shape A (modifier):** select a mesh → Properties › Modifiers ›
-   *ExpressNode* panel → paste an expression → *Recompile*.
-4. **Shape B (node group):** open a Geometry Nodes editor → N-panel ›
-   *ExpressNode* tab → *Add Expression Node Group*. To change a
-   dropped group later, select it, edit the text and click *Update
-   Selected Group*; every node using that group updates.
+## More
 
-First expression to try (`examples/ripple.py`):
-
-```python
-def ripple(P, t, freq=6.0, amp=0.3):
-    return vec3(0.0, 0.0, sin(P.x * freq + t) * amp)
-```
-
-Add it as a modifier on a subdivided plane, scrub the timeline — the
-plane ripples. Full verification steps: `TESTING.md`.
-
-Read order:
-
-1. `SCOPE.md` — vision, audience, success criteria.
-2. `SPEC.md` — architecture: compiler pipeline, Python subset, GN
-   emission strategy, the two user-facing shapes.
-3. `PLAN.md` — milestones and current status.
-4. `TESTING.md` — milestone-by-milestone path + the M3 Blender checklist.
-5. `docs/grouping.md` — the M2 grouping-pass design.
-6. `docs/emission.md` — the M3 backend design.
-7. `docs/evaluator.md` — the M6 numpy oracle + reference noise spec.
-8. `docs/osl.md` — the M7 OSL backend.
-9. `docs/glsl.md` — the M8 GLSL/Eevee backend.
-10. `docs/gpu.md` — the M9 WGSL GPU compute backend.
-11. `docs/expression-reference.md` — the supported Python surface.
-12. `docs/existing-alternatives.md` — Sverchok / Animation Nodes / OSL
-    comparison.
-13. `docs/examples/` — two worked examples.
-
-## Where the compiler came from
-
-The intermediate representation (EvalGraph IR) started life in an
-earlier procedural-geometry engine and is now vendored in
-`expressnode/_ir`, so ExpressNode is self-contained: nothing else
-needs to be installed. ExpressNode adds the Python-expression frontend,
-the group-wrapping pass and the user-facing modifier and node group.
-
-## Target platform
-
-Blender 5.0 or newer (tested on 5.0.1, 5.1.2 and 5.2.2). Python 3.11+.
+- [docs/](docs/): the expression reference, the compiler's design (grouping, emission, evaluator,
+  OSL, GLSL, WGSL) and a comparison with other tools.
+- [docs/design/](docs/design/): the original scope, spec and build plan.
+- [docs/HISTORY.md](docs/HISTORY.md): how it was built and verified.
 
 ## Licence
 

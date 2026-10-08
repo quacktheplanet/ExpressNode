@@ -136,6 +136,6 @@ guarantee, verified by
 
 ## Related
 
-- `../PLAN.md` — milestones
-- `../TESTING.md` — how to verify each milestone
-- `../SPEC.md` — the GN emission strategy that consumes this
+- `design/PLAN.md` — milestones
+- `../TESTING.md` / `design/TESTING-CHECKLIST.md` — how to verify each milestone
+- `design/SPEC.md` — the GN emission strategy that consumes this

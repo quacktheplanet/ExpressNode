@@ -1,5 +1,7 @@
 # ExpressNode — Executive Specification
 
+> **Design and development notes,** written while ExpressNode was being built (it was called Coding Nodes then). Kept for anyone curious about how it works; some file paths and statuses describe the code at the time. For using ExpressNode, start with the [README](../../README.md).
+
 **Version:** 0.2 (focused)
 **Status:** Specification. Build queued.
 **Target:** Blender 5.0+ (tested on 5.0.1 and 5.1.2; 4.x is not tested or declared).

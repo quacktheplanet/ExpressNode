@@ -2,7 +2,7 @@
 
 The same Python expression that drives geometry (the GN backend)
 compiled to an **Open Shading Language** shader for Cycles. First step
-of the multi-backend trajectory (ROADMAP §4b).
+of the multi-backend trajectory.
 
 ## What it produces
 
@@ -90,5 +90,4 @@ parity is confirmed when the runtime is present.
 
 - `evaluator.md` — the oracle and the reference noise spec this matches
 - `emission.md` — the GN backend (the other target of the same IR)
-- `../../ROADMAP.md` §4b — the multi-backend trajectory
-- `../PLAN.md` / `../TESTING.md` — milestone status & test map
+- `design/PLAN.md` / `../TESTING.md` / `design/TESTING-CHECKLIST.md` — milestone status & test map

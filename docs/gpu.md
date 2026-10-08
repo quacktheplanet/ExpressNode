@@ -1,7 +1,7 @@
 # The GPU Compute Backend (M9)
 
 The same Python expression compiled to a **WGSL compute shader** — the
-"fast at scale" target (ROADMAP §4b). The expression becomes a parallel
+"fast at scale" target. The expression becomes a parallel
 kernel: one GPU invocation per point, over flat `array<f32>` buffers.
 
 ## What it produces
@@ -97,4 +97,3 @@ Vulkan/Metal/D3D/WebGPU from one source.
 - `evaluator.md` — the oracle / reference noise this matches bit-exactly
 - `glsl.md` / `osl.md` — the sibling shader backends
 - `emission.md` — the GN backend
-- `../../ROADMAP.md` §4b — the multi-backend trajectory

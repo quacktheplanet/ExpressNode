@@ -53,6 +53,7 @@ def _old_file_round_trip():
     system[OLD + "apply_mode"] = 1
     scene_sys = bpy.context.scene.bl_system_properties_get(do_create=True)
     scene_sys[OLD + "group_expression"] = "def g(x):\n    return x * 2.0\n"
+    obj.modifiers.new("Coding" + "NodesExpression", "NODES")
     tree = bpy.data.node_groups.new("OldTree", "GeometryNodeTree")
     tree.use_fake_user = True
     tree[OLD + "source"] = "def h(x):\n    return x\n"
@@ -67,6 +68,8 @@ def _old_file_round_trip():
           obj.expressnode_apply_mode)
     check("old file: scene group expression migrated",
           bpy.context.scene.expressnode_group_expression.startswith("def g(x):"))
+    check("old file: the modifier gets its new name",
+          obj.modifiers.get("ExpressNode") is not None, [m.name for m in obj.modifiers])
     check("old file: node-tree markers migrated",
           tree.get("expressnode_source", "").startswith("def h(x):")
           and "expressnode_params" in tree.keys()

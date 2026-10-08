@@ -1,0 +1,666 @@
+# Testing Guide
+
+> **Design and development notes,** written while ExpressNode was being built (it was called Coding Nodes then). Kept for anyone curious about how it works; some file paths and statuses describe the code at the time. For using ExpressNode, start with the [README](../../README.md).
+
+How to verify ExpressNode, milestone by milestone. The pytest suite
+is **headless** (no Blender). The steps marked **[Blender]** and the
+runtime checklists are automated by `tests/blender/` and `tests/gpu/`
+(see "Blender and GPU checks" below).
+
+## Prerequisites
+
+```bash
+pip install pytest
+```
+
+The test suite imports `expressnode` (this project, with its IR
+vendored in `expressnode/_ir`). The path wiring is handled by
+`tests/conftest.py` — no install step needed.
+
+## Run everything
+
+```bash
+cd ExpressNode
+python3 -m pytest tests/ -q
+```
+
+Expected: all tests pass.
+
+## Blender and GPU checks (automated)
+
+Every **[Blender]** step and runtime checklist below is a script. One
+runner does them all, on each Blender you give it:
+
+```bash
+python tests/blender/run_all.py \
+    --blender "C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" \
+    --blender "C:/.../blender-5.0.1-windows-x64/blender.exe" \
+    --puppeteer <folder with node_modules/puppeteer-core>
+```
+
+| Script | Covers | Runs |
+|---|---|---|
+| `tests/blender/bl_gn.py` | M3/M4/M5 checklists; every Geometry Nodes case evaluated on a point cloud and compared with the oracle | `blender -b` |
+| `tests/blender/bl_osl.py` | M7: every shader compiled by Blender's `oslc`; Cycles renders compared with the oracle at the exact shading points | `blender -b` |
+| `tests/blender/bl_gui.py` | M8: GLSL compiled by Blender's `gpu` module, run over a float buffer, compared with the oracle; Shape B operators and panels in a real UI | small unfocused window, quits itself |
+| `tests/blender/bl_install.py` | 5.1: the packaged zip installs, enables, runs, disables (in a throwaway profile; refuses a real one) | `blender -b` |
+| `tests/gpu/wgsl_parity.py` | M9: WGSL compiled and dispatched by WebGPU in headless Edge/Chrome; parity; 1M points in one dispatch | Node + puppeteer-core |
+
+The cases (`tests/blender/cases.py`) cover every op the language has:
+arithmetic, all math functions, rounding, clamp/mix/smoothstep/step/
+fract/ping_pong, comparisons, and/or/not, if-else, every vector op,
+swizzles, nested helper functions (two levels), the built-in variables,
+attr/set_attr/obj, noise and voronoi. Tolerance is 2e-4 against the
+float64 oracle; a point that sits exactly on a floor/step edge is
+forgiven only if the oracle itself jumps there.
+
+**Results, 2026-09-27** (Windows 11, NVIDIA RTX A4500):
+
+| | Blender 5.0.1 | Blender 5.1.2 |
+|---|---|---|
+| Geometry Nodes (13 parity cases + checklist) | 46/46 | 46/46 |
+| OSL (12 cases: oslc, Cycles compile, parity) | 37/37 | 37/37 |
+| GLSL + Shape B UI (12 cases, OpenGL) | 32/32 | 32/32 |
+| Packaged zip install | 9/9 | 9/9 |
+| WGSL on WebGPU (Edge, 12 cases + 1M points) | 27/27 (browser, not Blender) | |
+
+Largest errors against the oracle: Geometry Nodes 6e-7; OSL, GLSL and
+WGSL 2e-6 for noise-free cases (GLSL 7e-5 on the asin/acos case, float32
+trig). Noise and voronoi match the oracle to 2e-6 in OSL, GLSL and WGSL;
+the curl-noise example differs by up to 3e-3 because its central
+differences (eps = 0.001, scaled by 1/(2 eps)) magnify float32 rounding
+about 200x, so that one case is checked at 1e-2. 1M points run in one
+WGSL dispatch in about 13 ms. Geometry Nodes can't match the oracle for
+noise() and voronoi() (it uses Blender's own noise, by design).
+
+## Run one milestone at a time
+
+The test tree mirrors the build milestones in `PLAN.md`:
+
+```
+tests/
+├── conftest.py            # path wiring (applies to all subdirs)
+├── m1_frontend/           # M1 — Python AST -> EvalGraph
+│   ├── test_basic.py
+│   ├── test_arithmetic.py
+│   ├── test_vectors.py
+│   ├── test_builtins.py
+│   ├── test_user_functions.py
+│   ├── test_errors.py
+│   └── test_examples.py
+└── m2_grouping/           # M2 — flat graph -> region tree
+    ├── test_region_extraction.py
+    ├── test_boundaries.py
+    ├── test_inline_heuristic.py
+    └── test_examples_grouped.py
+```
+
+Verify a milestone in isolation:
+
+```bash
+python3 -m pytest tests/m1_frontend/ -q     # M1
+python3 -m pytest tests/m2_grouping/ -q     # M2
+```
+
+Verify a single concern:
+
+```bash
+python3 -m pytest tests/m2_grouping/test_inline_heuristic.py -v
+```
+
+## Milestone 1 — Frontend (`tests/m1_frontend/`)
+
+**What it proves:** a Python expression parses into a typed EvalGraph,
+built-ins resolve, user functions inline, and unsupported syntax raises
+a located `CompileError`.
+
+| Test file | Verifies |
+|---|---|
+| `test_basic.py` | Entry-function selection, bare-expression wrapping, syntax errors carry a line number |
+| `test_arithmetic.py` | Scalar vs vector op dispatch, numeric type promotion |
+| `test_vectors.py` | `vec2/3/4`, component access, swizzles, subscripts, range checks |
+| `test_builtins.py` | Every built-in function returns the right type; `attr`/`set_attr`/`obj` specials |
+| `test_user_functions.py` | Inlining, vector args, defaults, scope tracking, arity errors |
+| `test_errors.py` | Every unsupported construct gives a clear, located error |
+| `test_examples.py` | `examples/ripple.py` and `examples/curl_noise.py` compile to acyclic graphs |
+
+**M1 done-criterion:** `tests/m1_frontend/test_examples.py` is green.
+
+## Milestone 2 — Grouping (`tests/m2_grouping/`)
+
+**What it proves:** the flat scope-annotated EvalGraph reconstructs into
+a call tree, boundary sockets are computed, small regions inline, and
+the curl-noise example becomes a readable tree instead of a flat sea of
+nodes.
+
+| Test file | Verifies |
+|---|---|
+| `test_region_extraction.py` | Call tree shape; every node assigned to exactly one region |
+| `test_boundaries.py` | Crossing edges + graph outputs become input/output sockets, deduplicated |
+| `test_inline_heuristic.py` | Small regions inline; threshold is configurable; root never inlines |
+| `test_examples_grouped.py` | `curl_noise.py` yields a `curl` root with 12 `n` sub-regions |
+
+**M2 done-criterion:**
+`tests/m2_grouping/test_examples_grouped.py::test_curl_noise_produces_n_subregions`
+is green — proving the "no flat sea of nodes" requirement.
+
+Quick manual look at the grouped structure:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+from expressnode import compile, group
+import json, pathlib
+src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
+print(json.dumps(group(compile(src)).describe(), indent=2, default=str))
+PY
+```
+
+You'll see the `curl` root with twelve `n#…` child regions and their
+input/output socket lists.
+
+## Milestone 3 — Backend: emitters + plan (`tests/m3_emit/`)
+
+**What it proves headlessly:** every op the frontend can emit maps to a
+Blender node descriptor; the emission plan for the examples has the
+right groups, sub-groups, instances, interfaces, and links; the
+bpy-using modules import cleanly without Blender.
+
+| Test file | Verifies |
+|---|---|
+| `test_op_coverage.py` | Every frontend op (and every op the examples use) has a registered emitter; emitter kinds/bl_idnames are well-formed |
+| `test_emission_plan.py` | `ripple` plans to one root group; parameters surface; result is linked to the group output; every eval node is placed or intentionally interface/param-only |
+| `test_plan_groups.py` | `curl_noise` plans to a root + 12 `n` sub-groups, instantiated and wired through interfaces; inline threshold collapses helpers |
+| `test_import_safety.py` | `gn_executor`, `modifier`, the addon shell, and `pipeline` import with no `bpy` present |
+
+**M3 headless done-criterion:** `tests/m3_emit/` is green — proving the
+plan that the Blender executor will consume is complete and correctly
+shaped.
+
+Inspect the plan for an example:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+from expressnode import plan_source
+import json, pathlib
+src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
+print(json.dumps(plan_source(src, inline_threshold=2).describe(),
+                  indent=2, default=str))
+PY
+```
+
+## Milestone 3 — Blender verification **[Blender]**
+
+Automated by `tests/blender/bl_gn.py`; passes on 5.0.1 and 5.1.2. The
+steps below are what it does, and still the way to look for yourself.
+
+**Findings (2026-09-27), all fixed:** the executor ignored socket names,
+so every two-input op got both operands on its first input and every
+component read took X; negation never set its -1; `fract` and
+`ping_pong` used operation names Blender doesn't have; `%` used
+truncated modulo (Python's is floored); `log` used Blender's default
+base 0.5; Mix clamped its factor; the Switch node's default type differs
+between 5.0 and 5.1; `<=`, `>=`, `!=`, `step`, `//` and `reflect` computed
+something else; parameter defaults weren't set, so `freq`/`amp` started
+at 0; noise had Blender's default scale 5 and no time input; `attr()`
+never set the attribute name; `set_attr()` did nothing. The planner
+wired only the first use of a value entering a helper group and
+threaded one nesting level only. Rebuilding deleted and recreated the
+trees, breaking anything that used them, and two objects whose
+expressions shared a function name overwrote each other's trees.
+
+### Setup
+
+1. Copy or symlink `ExpressNode/blender_addon/` into Blender's addons
+   folder (or "Install from Disk" pointing at it). It puts both
+   `expressnode` and `sacred_geometry` on `sys.path` automatically.
+2. Enable **"ExpressNode — Modifier"** in Preferences.
+
+### Test 3.1 — addon registers
+
+- Expected: no errors on enable. A **ExpressNode** panel
+  appears under Properties › Modifiers with a text field and a
+  *Recompile Expression* button.
+
+### Test 3.2 — ripple (no sub-groups, the golden path)
+
+1. Add a subdivided plane; keep it active.
+2. Paste `examples/ripple.py` into the panel text field.
+3. Click *Recompile Expression*.
+- Expected: an `ExpressNode` Nodes modifier appears (files from the old
+  add-on have theirs renamed on load), its node
+  group is `Modifier_Expr_ripple [Plane]` wrapping `Expr_ripple [Plane]`
+  (one set of trees per object), with `freq` and `amp` as modifier
+  inputs at their defaults 6.0 and 0.3.
+- Scrub the timeline → the plane ripples; the wave drifts with `t`.
+- Change `freq` to 12 → tighter waves on next recompile.
+- Open `Expr_ripple` in the Geometry Nodes editor → confirm a small
+  readable graph (Position → math chain → Combine XYZ → output), **not**
+  a wall of loose `Math` nodes.
+
+### Test 3.3 — compile errors surface, don't crash
+
+1. Type `def f(): return getattr(math,"sin")(P.x)`.
+2. Recompile.
+- Expected: the panel shows a red error box with the line, no crash,
+  the previous good modifier still intact.
+
+### Test 3.4 — curl-noise (sub-groups, the M2/M3 payoff)
+
+1. New subdivided icosphere (subdivisions ≈ 3).
+2. Paste `examples/curl_noise.py`; recompile.
+- Expected: node group `Expr_curl [Icosphere]` containing **twelve `n_*`
+  group instances**, not ~180 loose math nodes.
+- Open one `n_1` group → confirm it has the `n` body (offset add →
+  Noise) with inputs for the offset point, the seed and `scale`, and one
+  float output.
+- Scrub the timeline → the icosphere swirls organically.
+- Adjust `scale` / `strength` modifier inputs → visible change on
+  recompile.
+
+### What to watch for (known soft spots to record findings on)
+
+These are the parts the headless plan can't fully prove; note results
+in the PR/notes so we iterate:
+
+- **Complex emitters** (`flow.if`, `math.clamp/mix/smoothstep`,
+  `compare.eq/ne/le/ge`, `texture.noise` W-wiring, `attr.write`
+  geometry threading, `vec.swizzle` expansion, `*.floordiv`,
+  `vec.pow`). The descriptors are registered; the in-Blender wiring is
+  what 3.2–3.4 exercise. Note any that misbehave.
+- **Socket-name resolution** in the executor (`outputs.get(name)` vs
+  index). If a link silently drops, it's almost always a socket-name
+  mismatch for one bl_idname.
+- **Boundary threading** for nested helpers deeper than one level
+  (curl→n is one level and is covered; deeper nesting is plan-only
+  until a test case needs it).
+- **Modifier output application.** The root group currently outputs the
+  raw expression result. If the modifier should apply it as a position
+  offset / normal offset, that wrapping is the first follow-up after
+  3.4 passes.
+
+### Outcome
+
+When 3.1–3.4 pass, M3's done-criterion is met: *the user types an
+expression and sees the mesh respond, with a readable grouped node
+tree.* Record any soft-spot findings; they become the M3 follow-up /
+M5 polish list.
+
+## Milestone 4 — Expression Node Group, Shape B (`tests/m4_nodegroup/`)
+
+**What it proves headlessly:** Shape B reuses the M3 pipeline exactly,
+and the plan's root group is a clean, droppable group — interface is
+exactly the user parameters in plus a `Result` out, with no
+interface/param-only ops leaking inside. Same plan as Shape A, so the
+node tree is identical; the only difference is where it lands.
+
+| Test file | Verifies |
+|---|---|
+| `test_shape_b_contract.py` | Root group interface == params-in + Result-out; nothing interface/param-only emitted as a node; result wired; Shape A and Shape B share one plan; result type preserved |
+| `test_import_safety.py` | `node_group` and the two-shape addon import with no `bpy` |
+
+**M4 headless done-criterion:** `tests/m4_nodegroup/` is green.
+
+### Milestone 4 — Blender verification **[Blender]**
+
+Automated by `tests/blender/bl_gn.py` (the group, dropped into a host
+tree and compared with the oracle) and `tests/blender/bl_gui.py` (the
+operators in a real Node Editor, the panel drawing); passes on 5.0.1 and
+5.1.2.
+
+#### Test 4.1 — operator + panel appear
+
+- In a Geometry Nodes editor, open the N-panel.
+- Expected: a **ExpressNode** tab with a "ExpressNode
+  Group" panel: an expression text field and an *Add Expression Node
+  Group* button.
+
+#### Test 4.2 — drop a group into an existing tree
+
+1. Add a Geometry Nodes modifier to a mesh; open its tree.
+2. In the ExpressNode panel, keep the default `offset` expression.
+3. Click *Add Expression Node Group*.
+- Expected: a Group node appears in the tree, labeled with the
+  generated group name, referencing the compiled `Expr_offset` tree
+  with `amp` as an input and a `Result` output.
+- Wire its `Result` into a Set Position offset; confirm the mesh
+  deforms and animates with the timeline.
+
+#### Test 4.3 — same compiler as Shape A
+
+1. Apply the same expression via the Expression *Modifier* (Shape A)
+   on another object.
+- Expected: visually identical result. (Same plan, same tree shape —
+  asserted headlessly by `test_shape_a_and_shape_b_share_one_plan`.)
+
+#### Test 4.4 — compile error in the panel
+
+1. Type a bad expression; click the button.
+- Expected: red error box in the panel, no node added, no crash.
+
+#### Soft spots (resolved 2026-09-27)
+
+- **In-place re-edit of a dropped group.** Select the group node, edit
+  the text, click *Update Selected Group*: the group is rebuilt in place,
+  so every node using it updates and links into it are kept (when the
+  inputs and outputs are unchanged). Adding a group whose function name
+  is already taken by a *different* expression makes `Expr_name.001`
+  instead of overwriting.
+- **2D-cursor placement.** The new node lands at the editor's cursor
+  and becomes the active node.
+
+### Outcome
+
+When 4.1–4.4 pass, M4's done-criterion is met: *the user drops an
+expression into any GN tree as a group node, edits it, and it works* —
+the same compiler as the modifier, a different delivery surface.
+
+## Milestone 5 — Polish (`tests/m5_polish/`)
+
+**What it proves headlessly:** the expression group can be wrapped for
+real modifier use (Geometry in/out apply modes); tuned parameter values
+survive a recompile; every unsupported construct fails with a clear,
+located, hinted message; the docs cannot drift from the implementation;
+the addon packages into a structurally valid, self-contained zip.
+
+| Test file | Verifies |
+|---|---|
+| `test_apply_modes.py` | `raw` / `offset` / `absolute`; the wrapper is a Geometry-in/out group instantiating the expression group; params still exposed |
+| `test_param_reconcile.py` | Values kept on stable signature; new→default; removed→dropped; type-change→reset; signature-change detection |
+| `test_error_quality.py` | A 22-case matrix: each unsupported construct → expected message; errors are located; `str()` renders line+caret; unknown-name hints builtins |
+| `test_doc_accuracy.py` | Every built-in is in `expression-reference.md`; emitter registry covers the frontend universe; backend-only ops excluded; key docs exist |
+| `test_packaging.py` | `tools/package_addon.py` builds a zip bundling both packages + a register shim, no `__pycache__`, idempotent |
+
+**M5 headless done-criterion:** `tests/m5_polish/` is green (71 tests).
+
+Build the installable addon:
+
+```bash
+cd ExpressNode && python3 tools/package_addon.py dist
+# -> dist/expressnode_addon.zip
+```
+
+### Milestone 5 — Blender verification **[Blender]**
+
+Automated by `tests/blender/bl_install.py` (5.1) and
+`tests/blender/bl_gn.py` (5.2–5.4); passes on 5.0.1 and 5.1.2.
+
+#### Test 5.1 — install the packaged zip
+
+1. `python3 tools/package_addon.py dist`.
+2. Blender › Preferences › Add-ons › Install from Disk →
+   `dist/expressnode_addon.zip`; enable it.
+- Expected: enables with no errors; both the Modifier panel (Shape A)
+  and the Node Editor "ExpressNode" tab (Shape B) appear. No external
+  `sys.path` setup needed — the libs are bundled.
+
+#### Test 5.2 — apply modes (Shape A)
+
+1. Expression Modifier on a plane, `examples/ripple.py`.
+- Expected (mode `offset`, the modifier default): the modifier tree has
+  **Geometry in → Set Position → Geometry out**, the expression group
+  instanced between, `freq`/`amp` as modifier inputs; the plane ripples.
+- Switch the panel's *Apply* selector to `Absolute`: the Result places
+  each point instead of moving it.
+
+#### Test 5.3 — parameter values survive a recompile
+
+1. Set `freq` to 12 on the modifier.
+2. Edit the body (keep `freq`/`amp`); Recompile.
+- Expected: `freq` stays 12 (reconcile kept it — the signature was
+  unchanged). Rename `freq`→`f` and recompile → `f` appears at its
+  default (renamed = new parameter).
+
+#### Test 5.4 — error messages read well in-panel
+
+- Trigger several cases from the `test_error_quality.py` matrix; confirm
+  the panel shows the message + the offending line, no crash.
+
+#### Soft spots
+
+- **`absolute` mode UI.** Done: an Offset/Absolute selector in the panel.
+- **`normal` mode.** Done: the panel's Normal option pushes each point
+  along its normal by a number Result (Normal x Result into Set Position's
+  Offset); a vector Result is refused with a clear message (checked in
+  Blender on an ico sphere). A scalar Result in offset mode still moves
+  points by (r, r, r).
+- **`set_attr()` in helpers.** Done: the value leaves each nested group
+  through an extra output to the root (checked in Blender two levels down).
+  A helper that calls `set_attr()` and is used twice is refused, since both
+  calls would write the same attribute.
+- **Reconcile wiring.** Done: the modifier calls `reconcile()` on every
+  rebuild; a tuned value survives body edits and new parameters, and a
+  renamed parameter starts at its default (checked in Blender).
+
+### Outcome
+
+When 5.1–5.4 pass, the product is shippable: installable in one zip,
+two working shapes, values that survive edits, and errors that explain
+themselves. Remaining items become the M5 follow-up list.
+
+## Milestone 6 — Reference Evaluator / oracle (`tests/m6_evaluator/`)
+
+**Fully headless — no Blender, ever.** The numpy evaluator runs the
+expression graph directly and proves the *numbers* are right, not just
+that the plan is shaped right. It is the oracle every future backend
+(OSL/GLSL/GPU) gets validated against.
+
+| Test file | Verifies |
+|---|---|
+| `test_correctness.py` | Arithmetic, vectors, built-ins, user-function inlining compute exactly; **ripple == hand-written numpy, 0.0 error**; `set_attr` records correctly |
+| `test_curl_noise_eval.py` | curl-noise: (N,3), finite, deterministic, time/seed/strength sensitive |
+| `test_noise_spec.py` | Reference value-noise/voronoi properties pinned (range, determinism, spatial+temporal continuity) |
+| `test_oracle_api.py` | `evaluate()` defaults, shapes, normals fallback, attribute/object injection, EvalResult is array-like |
+
+**M6 done-criterion:** `tests/m6_evaluator/` green (32 tests). There is
+**no M6 Blender step** — correctness is proven entirely headlessly.
+This is the deliverable that converts "we think it's right" into "we
+proved it's right" for the whole M1→M5 path.
+
+Try it:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+import numpy as np
+from expressnode import compile, evaluate
+c = compile(open("ExpressNode/examples/ripple.py").read())
+P = np.random.uniform(-2, 2, (5, 3))
+print(evaluate(c, P=P, t=0.3).values)
+PY
+```
+
+See `docs/evaluator.md` for the reference noise/voronoi spec and the
+Blender-noise caveat (GN delegates to Blender's noise nodes, so
+noise-containing expressions match OSL/GLSL but not GN — by design).
+
+## Milestone 7 — OSL backend (`tests/m7_osl/`)
+
+**Headless:** the same expression compiled to an Open Shading Language
+shader (`osl_source(...)`). First backend off the multi-backend
+trajectory; validated against the M6 oracle.
+
+| Test file | Verifies |
+|---|---|
+| `test_osl_coverage.py` | Every frontend op has an OSL template (or is one of the two emitter-special-cased ops) |
+| `test_osl_structure.py` | Shader signature; balanced braces/parens; **SSA — every `vN` declared before use**; params surfaced; noise lib only when used; ripple chain faithful; scalar/vector output; name override |
+| `test_osl_compile.py` | Runs `oslc` on the generated shaders **if oslc is on PATH**; skips cleanly otherwise (auto-runs in any toolchain'd env) |
+
+**M7 headless done-criterion:** `tests/m7_osl/` green (15 tests; the 2
+oslc tests skip without the toolchain).
+
+Inspect a generated shader:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+from expressnode import osl_source
+print(osl_source(open("ExpressNode/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 7 — OSL-runtime checklist **[oslc / Blender]**
+
+Automated by `tests/blender/bl_osl.py`, using the `oslc` bundled with
+Blender (no separate toolchain) and Cycles renders instead of
+`testshade`; passes on 5.0.1 and 5.1.2. Found and fixed: most generated
+shaders didn't compile (OSL can't index a parenthesised expression,
+`(v0)[1]`), two-component swizzles built an invalid `vector(a, b)`, and
+the noise hash used signed shifts and dropped a bit, so noise didn't
+match. It now matches the oracle.
+
+1. **Compile.** `oslc shader.osl` succeeds for both examples. (The
+   pytest in `test_osl_compile.py` does this automatically when `oslc`
+   is on PATH.)
+2. **Numeric parity, noise-free.** For a noise-free expression (e.g.
+   ripple), `testshade` output over a grid equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — expected
+   exact, since OSL stdlib is IEEE-identical to numpy.
+3. **Numeric parity, noise.** For curl-noise, compare to the oracle;
+   record any lattice-hash mismatch (Python uint32 vs OSL `int`
+   overflow/shift) — that's the known parity item to reconcile in the
+   M7 follow-up.
+4. **In Cycles (Blender).** Assign the shader in a Cycles material;
+   confirm it drives the expected channel and animates with `Time`.
+
+#### Soft spots
+
+- **Lattice-hash parity** across Python/OSL: resolved. OSL emulates
+  uint32 (logical shifts, unsigned read), and voronoi hashes four values
+  like the oracle (all three shader backends hashed five).
+- **`attr.read`/`obj.read`** currently emit neutral defaults; wiring to
+  OSL `getattribute()` is the M7 follow-up.
+
+### Outcome
+
+When `tests/m7_osl/` is green and the runtime checklist confirms
+compile + noise-free parity, M7 is done: the same expression is a
+correct Cycles shader, validated against the oracle.
+
+## Milestone 8 — GLSL / Eevee backend (`tests/m8_glsl/`)
+
+**Headless:** the same expression compiled to a GLSL fragment shader
+(`glsl_source(...)`) for real-time / Eevee shading.
+
+| Test file | Verifies |
+|---|---|
+| `test_glsl_coverage.py` | Every frontend op has a GLSL template (or is emitter-special-cased) |
+| `test_glsl_structure.py` | `#version`; balanced braces/parens; **SSA declared-before-use**; function + `main()`; scalar/vector return; float literals have a decimal point; scalar→`vec3` promotion present; uint32 noise lib only when used; faithful ripple chain; name override |
+| `test_glsl_compile.py` | Runs `glslangValidator` on the generated `.frag` **if on PATH**; skips cleanly otherwise |
+
+**M8 headless done-criterion:** `tests/m8_glsl/` green (16 tests; 2
+glslang tests skip without the toolchain).
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+from expressnode import glsl_source
+print(glsl_source(open("ExpressNode/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 8 — GLSL-runtime checklist **[Blender gpu module]**
+
+Automated by `tests/blender/bl_gui.py`: the generated function compiled
+by Blender's own GLSL toolchain (`gpu.shader.create_from_info`) and run
+over a 64x64 float offscreen buffer; passes on 5.0.1 and 5.1.2 (OpenGL).
+Item 4 (use in an EEVEE material) isn't possible as written: EEVEE has
+no custom-GLSL material node, so the gpu-module run stands in for it.
+
+1. **Compile.** `glslangValidator shader.frag` succeeds for both
+   examples (the pytest does this automatically when on PATH).
+2. **Numeric parity, noise-free.** Run the shader over a grid; equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — exact (GLSL
+   stdlib == numpy IEEE).
+3. **Numeric parity, noise.** GLSL `uint` == numpy `uint32`, so
+   `noise()`/`voronoi()` are expected **bit-exact** with the oracle —
+   the strongest parity of any backend. Verify and record.
+4. **In Eevee (Blender).** Use the generated function in an Eevee
+   material/shader; confirm it drives the expected channel and
+   animates with `Time`.
+
+#### Soft spots to record
+
+- **uint32 bit-parity** in practice across the Python/GLSL grid (item
+  3) — expected exact; confirm.
+- **`attr.read`/`obj.read`** emit neutral defaults; wiring to shader
+  inputs/textures is the M8 follow-up.
+
+### Outcome
+
+When `tests/m8_glsl/` is green and the runtime checklist confirms
+compile + parity, M8 is done: one expression now targets geometry, the
+oracle, Cycles shading, and real-time GLSL shading — all from one IR.
+
+## Milestone 9 — WGSL GPU compute backend (`tests/m9_gpu/`)
+
+**Headless:** the same expression compiled to a WGSL compute kernel
+(`wgsl_source(...)`) — one GPU invocation per point over flat
+`array<f32>` buffers. The "fast at scale" tier.
+
+| Test file | Verifies |
+|---|---|
+| `test_wgsl_coverage.py` | Every frontend op has a WGSL template (or is emitter-special-cased) |
+| `test_wgsl_structure.py` | Kernel fn + storage/uniform bindings + `@compute` entry + bounds check; balanced braces/parens; **SSA declared-before-use**; scalar (pad) vs vector result writes; scalar→`vec3<f32>` promotion; floored `mod`; uint32 noise (`bitcast<u32>`) only when used; faithful ripple; name override |
+| `test_wgsl_compile.py` | Validates with `naga` or `tint` **if on PATH**; skips cleanly otherwise |
+
+**M9 headless done-criterion:** `tests/m9_gpu/` green (17 tests; 2
+validator tests skip without naga/tint).
+
+```bash
+python3 - <<'PY'
+import sys; sys.path[:0] = ["ExpressNode"]
+from expressnode import wgsl_source
+print(wgsl_source(open("ExpressNode/examples/ripple.py").read()))
+PY
+```
+
+### Milestone 9 — GPU-runtime checklist **[WebGPU]**
+
+Automated by `tests/gpu/wgsl_parity.py`: kernels compiled and dispatched
+by WebGPU in headless Edge (the browser's compiler stands in for
+naga/tint); all parity items pass and 1M points run in one dispatch in
+about 13 ms. The host-side layout: `in_P` flat xyz f32, `out_R` flat xyz
+f32, `U` = Time, Frame, DeltaTime (f32), Seed (i32), then each parameter
+as f32 in declaration order, padded to 16 bytes.
+
+1. **Validate.** `naga shader.wgsl` (or `tint`) succeeds for both
+   examples (the pytest does this when on PATH).
+2. **Numeric parity, noise-free.** Dispatch the kernel via wgpu over a
+   grid of N points; the `out_R` buffer equals
+   `evaluate(compiled, P=grid, t=...)` to float epsilon — exact.
+3. **Numeric parity, noise.** WGSL `u32` == numpy `uint32` with
+   `bitcast<u32>` matching `astype(uint32)`, so `noise()`/`voronoi()`
+   are expected **bit-exact** with the oracle. Verify and record.
+4. **Scale.** Dispatch over 1M points; confirm it runs as a single
+   GPU pass (the "fast at scale" demonstration). No Blender needed.
+
+#### Soft spots to record
+
+- **uint32 bit-parity** Python↔WGSL across the grid (item 3) —
+  expected exact; confirm.
+- **Buffer/uniform binding layout** for a real wgpu harness (the
+  emitter fixes a flat-f32 layout; document the host-side packing).
+- **`attr.read`/`obj.read`** neutral defaults; input-buffer wiring is
+  the M9 follow-up.
+
+### Outcome
+
+When `tests/m9_gpu/` is green and the runtime checklist confirms
+validate + parity, M9 is done: one expression now targets geometry,
+the oracle, Cycles (OSL), real-time (GLSL), and GPU compute (WGSL) —
+all from one IR. The §4b backend-breadth trajectory is built.
+
+## Continuous checks
+
+Run before every commit:
+
+```bash
+cd ExpressNode && python3 -m pytest tests/ -q
+```
+
+Add a test alongside any new behavior, in the milestone directory it
+belongs to. Keep new tests headless unless the behavior genuinely needs
+Blender — in which case document the manual steps in this file under the
+relevant milestone.

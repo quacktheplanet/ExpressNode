@@ -2,7 +2,7 @@
 
 The same Python expression compiled to a **GLSL fragment shader** for
 Eevee / real-time viewport shading. Second backend off the
-multi-backend trajectory (ROADMAP §4b), same SSA approach as OSL.
+multi-backend trajectory, same SSA approach as OSL.
 
 ## What it produces
 
@@ -78,4 +78,3 @@ Same honest split as OSL/GN:
 - `evaluator.md` — the oracle / reference noise spec this matches
 - `osl.md` — the sibling shader backend
 - `emission.md` — the GN backend
-- `../../ROADMAP.md` §4b — the multi-backend trajectory

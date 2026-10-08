@@ -89,7 +89,7 @@ GPU-accelerated noise. When numeric parity with GN matters, avoid
 
 ## How backends will be validated against it
 
-The pattern for OSL/GLSL/GPU (the next backends, see `../../ROADMAP.md`
+The pattern for OSL/GLSL/GPU (the next backends
 §4b):
 
 1. Compile an expression once.
@@ -103,7 +103,6 @@ the in-Blender *visual/UX* check needs Blender.
 
 ## Related
 
-- `../PLAN.md` — milestones (M6)
-- `../TESTING.md` — the M6 test map
-- `../../ROADMAP.md` — where the oracle sits in the trajectory
+- `design/PLAN.md` — milestones (M6)
+- `../TESTING.md` / `design/TESTING-CHECKLIST.md` — the M6 test map
 - `emission.md` — the GN backend it complements
