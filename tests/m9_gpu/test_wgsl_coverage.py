@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import compile
-from coding_nodes.backend.op_emitters import (
+from expressnode import compile
+from expressnode.backend.op_emitters import (
     BACKEND_ONLY_OPS,
     frontend_op_universe,
 )
-from coding_nodes.backend.wgsl import wgsl_template_ops
+from expressnode.backend.wgsl import wgsl_template_ops
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 _SPECIAL = {"input.parameter", "constant.string"}

@@ -8,9 +8,11 @@ Blenders can also come from $EXPN_BLENDERS (paths separated by ';').
 Per Blender it runs:
     gn       bl_gn.py        Geometry Nodes parity + M3/M4/M5 checklist   (-b)
     osl      bl_osl.py       OSL compile + Cycles parity                   (-b)
-    gui      bl_gui.py       GLSL parity (gpu module) + Shape B in the UI  (small
-                             unfocused window; quits by itself)
-    install  bl_install.py   packaged zip installs in a throwaway profile  (-b)
+    gui      bl_gui.py       GLSL parity (gpu module) + Shape B in the UI  (needs a
+                             window; on Windows it opens on a hidden desktop so
+                             nothing appears on screen; quits by itself)
+    install  bl_install.py   the extension zip installs in a throwaway profile;
+                             old-file migration                            (-b)
 and once:
     wgsl     tests/gpu/wgsl_parity.py   WGSL parity + 1M-point dispatch (needs
              Node, puppeteer-core via --puppeteer, Edge/Chrome with WebGPU)
@@ -27,6 +29,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parents[1]
@@ -49,14 +52,34 @@ def parse(output: str):
     return checks, finished
 
 
-def run_blender(blender, key, zip_path):
+def _run_hidden(cmd, env, timeout):
+    """Windows: run a windowed Blender on a separate, never-shown desktop
+    (HiddenRun.cs), so a test window can't pop up over whatever the user is
+    doing. Returns its output."""
+    log = pathlib.Path(tempfile.mkdtemp(prefix="expn_hidden_")) / "out.log"
+    line = subprocess.list2cmdline(cmd)
+    ps = ("Add-Type -Path '{cs}'; exit [HiddenRun]::Run('{cmd}', '{cwd}', '{log}', {ms})"
+          .format(cs=HERE / "HiddenRun.cs", cmd=line.replace("'", "''"),
+                  cwd=REPO, log=log, ms=timeout * 1000))
+    proc = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                          env=env, capture_output=True, text=True)
+    for _ in range(20):                       # the log may still be flushing
+        if log.exists():
+            break
+        time.sleep(0.25)
+    out = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
+    if proc.returncode == 9999:
+        out += "\nTIMEOUT"
+    return out + proc.stderr
+
+
+def run_blender(blender, key, zip_path, visible=False):
     script, background = SCRIPTS[key]
     cmd = [blender]
     if background:
         cmd.append("-b")
     else:
-        # The gpu module needs a window: keep it small, in a corner, and
-        # don't take focus from whatever the user is doing.
+        # The gpu module needs a window: keep it small and unfocused.
         cmd += ["--no-window-focus", "--window-geometry", "0", "0", "480", "360"]
     cmd += ["--factory-startup", "--python", str(HERE / script)]
     env = dict(os.environ)
@@ -65,6 +88,8 @@ def run_blender(blender, key, zip_path):
         env["EXPN_SANDBOX"] = sandbox
         env["BLENDER_USER_RESOURCES"] = sandbox
         cmd += ["--", str(zip_path)]
+    if not background and sys.platform == "win32" and not visible:
+        return parse(_run_hidden(cmd, env, 900)) + ("",)
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, env=env,
                               timeout=900, encoding="utf-8", errors="replace")
@@ -80,6 +105,8 @@ def main():
     ap.add_argument("--blender", action="append", default=[])
     ap.add_argument("--puppeteer", default=os.environ.get("PUPPETEER_CORE_DIR"))
     ap.add_argument("--only", default="gn,osl,gui,install,wgsl")
+    ap.add_argument("--visible", action="store_true",
+                    help="Windows: show the windowed test instead of using a hidden desktop")
     args = ap.parse_args()
     blenders = args.blender or [
         p for p in os.environ.get("EXPN_BLENDERS", "").split(";") if p]
@@ -99,7 +126,7 @@ def main():
         for key in ("gn", "osl", "gui", "install"):
             if key not in only:
                 continue
-            checks, finished, out = run_blender(blender, key, zip_path)
+            checks, finished, out = run_blender(blender, key, zip_path, args.visible)
             version = next((c["detail"] for c in checks
                             if c["check"] == "blender version"), "?")
             bad = [c for c in checks if not c["ok"]]

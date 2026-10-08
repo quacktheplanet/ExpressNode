@@ -4,7 +4,7 @@ here."""
 
 import numpy as np
 
-from coding_nodes.evaluator.noise import value_noise, voronoi_f1
+from expressnode.evaluator.noise import value_noise, voronoi_f1
 
 
 def _grid(n=20):

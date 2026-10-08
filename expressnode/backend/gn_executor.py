@@ -23,7 +23,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from coding_nodes.backend.plan import (
+from ..backend.plan import (
     EmissionPlan,
     Endpoint,
     GroupDef,
@@ -521,7 +521,7 @@ def execute(plan: EmissionPlan, suffix: str = "", source: str = ""):
     for tree in trees.values():
         _layout(tree)
     for gname in {plan.root_name, plan.deliverable_root()}:
-        trees[gname]["coding_nodes_source"] = source
+        trees[gname]["expressnode_source"] = source
     return trees[plan.deliverable_root()]
 
 
@@ -535,7 +535,7 @@ def tree_name_for(plan: EmissionPlan, source: str) -> str:
     while True:
         suffix = "" if k == 0 else f".{k:03d}"
         tree = bpy.data.node_groups.get(plan.root_name + suffix)
-        if tree is None or tree.get("coding_nodes_source") == source:
+        if tree is None or tree.get("expressnode_source") == source:
             return suffix
         k += 1
 

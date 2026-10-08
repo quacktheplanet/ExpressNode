@@ -3,7 +3,7 @@ M1 done-criteria from PLAN.md."""
 
 from pathlib import Path
 
-from coding_nodes import compile
+from expressnode import compile
 
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"

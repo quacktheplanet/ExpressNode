@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import wgsl_source
+from expressnode import wgsl_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 NAGA = shutil.which("naga")

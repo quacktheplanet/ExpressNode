@@ -2,14 +2,14 @@
 
 import pytest
 
-import coding_nodes
-from coding_nodes import CompileError, compile
+import expressnode
+from expressnode import CompileError, compile
 
 
 def test_top_level_imports():
-    assert hasattr(coding_nodes, "compile")
-    assert hasattr(coding_nodes, "CompiledExpression")
-    assert hasattr(coding_nodes, "CompileError")
+    assert hasattr(expressnode, "compile")
+    assert hasattr(expressnode, "CompiledExpression")
+    assert hasattr(expressnode, "CompileError")
 
 
 def test_simplest_expression():

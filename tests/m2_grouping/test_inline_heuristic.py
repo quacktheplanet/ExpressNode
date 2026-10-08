@@ -1,6 +1,6 @@
 """Small regions inline into their parent instead of becoming a sub-group."""
 
-from coding_nodes import compile, group
+from expressnode import compile, group
 
 
 def _child_by_fn(region, fn):

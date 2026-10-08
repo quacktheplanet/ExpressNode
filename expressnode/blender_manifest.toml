@@ -1,0 +1,19 @@
+schema_version = "1.0.0"
+
+id = "expressnode"
+version = "0.9.0"
+name = "ExpressNode"
+tagline = "Type a maths expression, get a clean Geometry Nodes tree"
+maintainer = "Lucas DeMeritt"
+type = "add-on"
+
+website = "https://github.com/quacktheplanet/ExpressNode"
+
+tags = ["Geometry Nodes", "Node", "Modeling"]
+
+blender_version_min = "5.0.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "/.git/", "*.pyc", "*.zip"]

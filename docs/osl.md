@@ -46,7 +46,7 @@ That is exactly the oracle's semantics: `sin(P.x*freq+t)*amp` on Z.
 
 When an expression uses `noise()`/`voronoi()`, the shader prepends
 `cn_value_noise` / `cn_voronoi_f1` — authored to mirror
-`coding_nodes/evaluator/noise.py` (the oracle) algorithm-for-algorithm.
+`expressnode/evaluator/noise.py` (the oracle) algorithm-for-algorithm.
 The library is included only when used.
 
 ## Correctness model

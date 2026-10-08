@@ -4,7 +4,7 @@ nodes."""
 
 from pathlib import Path
 
-from coding_nodes import compile, group
+from expressnode import compile, group
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 

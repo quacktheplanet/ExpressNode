@@ -4,8 +4,8 @@ the oracle role for other backends."""
 import numpy as np
 import pytest
 
-from coding_nodes import compile, evaluate
-from coding_nodes.evaluator import EvalResult
+from expressnode import compile, evaluate
+from expressnode.evaluator import EvalResult
 
 
 def test_no_P_gives_single_point():
@@ -61,5 +61,5 @@ def test_evalresult_is_array_like():
 def test_core_imports_without_numpy_guard_present():
     """The top-level package exposes evaluate when numpy is available
     (it is in tests) but the guard keeps the core importable without it."""
-    import coding_nodes
-    assert "evaluate" in coding_nodes.__all__
+    import expressnode
+    assert "evaluate" in expressnode.__all__

@@ -28,7 +28,7 @@ _classes: list = []
 def _build_group_tree(source: str):
     """Compile + plan + execute, returning the root NodeTree to reference.
     Raises CompileError (caught by the operator) on bad syntax."""
-    from coding_nodes.backend.pipeline import build_in_blender
+    from ..backend.pipeline import build_in_blender
     return build_in_blender(source)
 
 
@@ -38,8 +38,8 @@ def update_group(old_tree, source: str) -> str:
     replaces the old one in every group node that used it. Returns "" or
     an error message."""
     import bpy
-    from coding_nodes.frontend.errors import CompileError
-    from coding_nodes.backend.pipeline import build_in_blender, plan_source
+    from ..frontend.errors import CompileError
+    from ..backend.pipeline import build_in_blender, plan_source
     try:
         plan = plan_source(source)
         suffix = None
@@ -63,8 +63,8 @@ def update_group(old_tree, source: str) -> str:
 def _build_classes():
     import bpy
 
-    class CN_OT_add_expression_group(bpy.types.Operator):
-        bl_idname = "coding_nodes.add_expression_group"
+    class EXPRESSNODE_OT_add_expression_group(bpy.types.Operator):
+        bl_idname = "expressnode.add_expression_group"
         bl_label = "Add Expression Node Group"
         bl_description = (
             "Compile an expression and drop it into the active node tree"
@@ -79,26 +79,26 @@ def _build_classes():
                     and getattr(space, "edit_tree", None) is not None)
 
         def execute(self, context):
-            from coding_nodes.frontend.errors import CompileError
+            from ..frontend.errors import CompileError
             scene = context.scene
-            source = scene.coding_nodes_group_expression
+            source = scene.expressnode_group_expression
             try:
                 tree = _build_group_tree(source)
             except CompileError as e:
-                scene.coding_nodes_group_error = str(e)
+                scene.expressnode_group_error = str(e)
                 self.report({"WARNING"}, "Compile error (see panel)")
                 return {"CANCELLED"}
             except Exception as e:
-                scene.coding_nodes_group_error = f"{type(e).__name__}: {e}"
+                scene.expressnode_group_error = f"{type(e).__name__}: {e}"
                 self.report({"ERROR"}, "Build failed (see panel)")
                 return {"CANCELLED"}
 
-            scene.coding_nodes_group_error = ""
+            scene.expressnode_group_error = ""
             edit_tree = context.space_data.edit_tree
             gnode = edit_tree.nodes.new("GeometryNodeGroup")
             gnode.node_tree = tree
             gnode.label = tree.name
-            gnode["coding_nodes_source"] = source
+            gnode["expressnode_source"] = source
             gnode.location = tuple(getattr(context.space_data,
                                            "cursor_location", (0.0, 0.0)))
             for n in edit_tree.nodes:
@@ -108,8 +108,8 @@ def _build_classes():
             self.report({"INFO"}, f"Added {tree.name}")
             return {"FINISHED"}
 
-    class CN_OT_update_expression_group(bpy.types.Operator):
-        bl_idname = "coding_nodes.update_expression_group"
+    class EXPRESSNODE_OT_update_expression_group(bpy.types.Operator):
+        bl_idname = "expressnode.update_expression_group"
         bl_label = "Update Selected Group"
         bl_description = (
             "Recompile the active expression group node from the text "
@@ -125,23 +125,23 @@ def _build_classes():
             return (node is not None
                     and node.bl_idname == "GeometryNodeGroup"
                     and node.node_tree is not None
-                    and "coding_nodes_source" in node.node_tree)
+                    and "expressnode_source" in node.node_tree)
 
         def execute(self, context):
             scene = context.scene
             node = context.space_data.edit_tree.nodes.active
             err = update_group(node.node_tree,
-                               scene.coding_nodes_group_expression)
-            scene.coding_nodes_group_error = err
+                               scene.expressnode_group_expression)
+            scene.expressnode_group_error = err
             if err:
                 self.report({"WARNING"}, "Compile error (see panel)")
                 return {"CANCELLED"}
-            node["coding_nodes_source"] = scene.coding_nodes_group_expression
+            node["expressnode_source"] = scene.expressnode_group_expression
             self.report({"INFO"}, f"Updated {node.node_tree.name}")
             return {"FINISHED"}
 
-    class CN_PT_group_panel(bpy.types.Panel):
-        bl_idname = "CN_PT_group_panel"
+    class EXPRESSNODE_PT_group_panel(bpy.types.Panel):
+        bl_idname = "EXPRESSNODE_PT_group_panel"
         bl_label = "ExpressNode Group"
         bl_space_type = "NODE_EDITOR"
         bl_region_type = "UI"
@@ -155,28 +155,28 @@ def _build_classes():
             layout = self.layout
             scene = context.scene
             layout.label(text="Drop a Python expression as a group node:")
-            layout.prop(scene, "coding_nodes_group_expression", text="")
-            layout.operator("coding_nodes.add_expression_group",
+            layout.prop(scene, "expressnode_group_expression", text="")
+            layout.operator("expressnode.add_expression_group",
                              icon="NODETREE")
-            layout.operator("coding_nodes.update_expression_group",
+            layout.operator("expressnode.update_expression_group",
                              icon="FILE_REFRESH")
-            err = getattr(scene, "coding_nodes_group_error", "")
+            err = getattr(scene, "expressnode_group_error", "")
             if err:
                 box = layout.box()
                 for line in err.splitlines():
                     box.label(text=line, icon="ERROR")
 
-    return [CN_OT_add_expression_group, CN_OT_update_expression_group,
-            CN_PT_group_panel]
+    return [EXPRESSNODE_OT_add_expression_group, EXPRESSNODE_OT_update_expression_group,
+            EXPRESSNODE_PT_group_panel]
 
 
 def register():
     import bpy
     global _classes
-    bpy.types.Scene.coding_nodes_group_expression = bpy.props.StringProperty(
+    bpy.types.Scene.expressnode_group_expression = bpy.props.StringProperty(
         name="Group Expression", default=DEFAULT_EXPRESSION,
     )
-    bpy.types.Scene.coding_nodes_group_error = bpy.props.StringProperty(
+    bpy.types.Scene.expressnode_group_error = bpy.props.StringProperty(
         name="Group Compile Error", default="",
     )
     _classes = _build_classes()
@@ -192,5 +192,5 @@ def unregister():
         except Exception:
             pass
     _classes.clear()
-    del bpy.types.Scene.coding_nodes_group_expression
-    del bpy.types.Scene.coding_nodes_group_error
+    del bpy.types.Scene.expressnode_group_expression
+    del bpy.types.Scene.expressnode_group_error

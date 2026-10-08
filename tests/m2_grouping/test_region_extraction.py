@@ -1,6 +1,6 @@
 """The grouping pass reconstructs the call tree from scope paths."""
 
-from coding_nodes import compile, group
+from expressnode import compile, group
 
 
 def test_single_function_is_root_only():

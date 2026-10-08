@@ -29,7 +29,7 @@ sys.path[:0] = [str(REPO), str(REPO / "tests" / "blender")]
 import numpy as np  # noqa: E402
 
 import cases  # noqa: E402
-from coding_nodes import compile as cn_compile, evaluate, wgsl_source  # noqa: E402
+from expressnode import compile as cn_compile, evaluate, wgsl_source  # noqa: E402
 
 _failed = []
 

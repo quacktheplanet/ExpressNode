@@ -19,9 +19,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field as _dc_field
 from typing import Any
 
-from coding_nodes.backend.op_emitters import get_emitter
-from coding_nodes.frontend.parser import CompiledExpression
-from coding_nodes.grouping import GroupedGraph, GroupRegion, group
+from ..backend.op_emitters import get_emitter
+from ..frontend.parser import CompiledExpression
+from ..grouping import GroupedGraph, GroupRegion, group
 
 
 # ---------------------------------------------------------------------------

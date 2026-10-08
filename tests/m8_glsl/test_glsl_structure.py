@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import glsl_source
+from expressnode import glsl_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 DECL = re.compile(r"^\s*(?:float|vec3)\s+(v\d+)\s*=", re.M)

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import compile, osl_source
+from expressnode import compile, osl_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 

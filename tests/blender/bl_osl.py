@@ -26,7 +26,7 @@ import bpy  # noqa: E402
 import numpy as np  # noqa: E402
 
 import cases  # noqa: E402
-from coding_nodes import compile as cn_compile, evaluate, osl_source  # noqa: E402
+from expressnode import compile as cn_compile, evaluate, osl_source  # noqa: E402
 
 RES = 48
 BIAS = 8.0

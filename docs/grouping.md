@@ -1,7 +1,7 @@
 # The Grouping Pass (M2)
 
 How a flat EvalGraph becomes a readable hierarchy of named sub-groups.
-This is the design behind `coding_nodes/grouping/`.
+This is the design behind `expressnode/grouping/`.
 
 ## The problem it solves
 

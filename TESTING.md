@@ -11,8 +11,8 @@ runtime checklists are automated by `tests/blender/` and `tests/gpu/`
 pip install pytest
 ```
 
-The test suite imports `coding_nodes` (this project, with its IR
-vendored in `coding_nodes/_ir`). The path wiring is handled by
+The test suite imports `expressnode` (this project, with its IR
+vendored in `expressnode/_ir`). The path wiring is handled by
 `tests/conftest.py` — no install step needed.
 
 ## Run everything
@@ -147,7 +147,7 @@ Quick manual look at the grouped structure:
 ```bash
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
-from coding_nodes import compile, group
+from expressnode import compile, group
 import json, pathlib
 src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
 print(json.dumps(group(compile(src)).describe(), indent=2, default=str))
@@ -180,7 +180,7 @@ Inspect the plan for an example:
 ```bash
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
-from coding_nodes import plan_source
+from expressnode import plan_source
 import json, pathlib
 src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
 print(json.dumps(plan_source(src, inline_threshold=2).describe(),
@@ -212,7 +212,7 @@ expressions shared a function name overwrote each other's trees.
 
 1. Copy or symlink `ExpressNode/blender_addon/` into Blender's addons
    folder (or "Install from Disk" pointing at it). It puts both
-   `coding_nodes` and `sacred_geometry` on `sys.path` automatically.
+   `expressnode` and `sacred_geometry` on `sys.path` automatically.
 2. Enable **"ExpressNode — Modifier"** in Preferences.
 
 ### Test 3.1 — addon registers
@@ -376,7 +376,7 @@ Build the installable addon:
 
 ```bash
 cd ExpressNode && python3 tools/package_addon.py dist
-# -> dist/coding_nodes_addon.zip
+# -> dist/expressnode_addon.zip
 ```
 
 ### Milestone 5 — Blender verification **[Blender]**
@@ -388,7 +388,7 @@ Automated by `tests/blender/bl_install.py` (5.1) and
 
 1. `python3 tools/package_addon.py dist`.
 2. Blender › Preferences › Add-ons › Install from Disk →
-   `dist/coding_nodes_addon.zip`; enable it.
+   `dist/expressnode_addon.zip`; enable it.
 - Expected: enables with no errors; both the Modifier panel (Shape A)
   and the Node Editor "ExpressNode" tab (Shape B) appear. No external
   `sys.path` setup needed — the libs are bundled.
@@ -462,7 +462,7 @@ Try it:
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
 import numpy as np
-from coding_nodes import compile, evaluate
+from expressnode import compile, evaluate
 c = compile(open("ExpressNode/examples/ripple.py").read())
 P = np.random.uniform(-2, 2, (5, 3))
 print(evaluate(c, P=P, t=0.3).values)
@@ -493,7 +493,7 @@ Inspect a generated shader:
 ```bash
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
-from coding_nodes import osl_source
+from expressnode import osl_source
 print(osl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```
@@ -553,7 +553,7 @@ glslang tests skip without the toolchain).
 ```bash
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
-from coding_nodes import glsl_source
+from expressnode import glsl_source
 print(glsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```
@@ -609,7 +609,7 @@ validator tests skip without naga/tint).
 ```bash
 python3 - <<'PY'
 import sys; sys.path[:0] = ["ExpressNode"]
-from coding_nodes import wgsl_source
+from expressnode import wgsl_source
 print(wgsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
 ```

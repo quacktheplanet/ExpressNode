@@ -69,15 +69,15 @@ def _apply(obj, source: str, apply_mode: str = "offset",
     parameter still exists with the same type (params.reconcile).
     """
     import json
-    from coding_nodes.frontend.errors import CompileError
-    from coding_nodes.backend.params import reconcile
-    from coding_nodes.backend.pipeline import build_in_blender
+    from ..frontend.errors import CompileError
+    from ..backend.params import reconcile
+    from ..backend.pipeline import build_in_blender
 
     mod = obj.modifiers.get(MODIFIER_NAME)
     old_values = _modifier_values(mod)
     old_params = []
     if mod is not None and mod.node_group is not None:
-        old_params = json.loads(mod.node_group.get("coding_nodes_params",
+        old_params = json.loads(mod.node_group.get("expressnode_params",
                                                    "[]"))
     try:
         # A modifier needs a Geometry-in/out tree; the wrapper applies
@@ -94,7 +94,7 @@ def _apply(obj, source: str, apply_mode: str = "offset",
     if mod is None:
         mod = obj.modifiers.new(MODIFIER_NAME, "NODES")
     mod.node_group = tree
-    new_params = json.loads(tree.get("coding_nodes_params", "[]"))
+    new_params = json.loads(tree.get("expressnode_params", "[]"))
     values = reconcile([tuple(p) for p in old_params],
                        [tuple(p) for p in new_params], old_values)
     for item in _input_items(tree):
@@ -110,8 +110,8 @@ def _apply(obj, source: str, apply_mode: str = "offset",
 def _build_classes():
     import bpy
 
-    class CN_OT_recompile(bpy.types.Operator):
-        bl_idname = "coding_nodes.recompile"
+    class EXPRESSNODE_OT_recompile(bpy.types.Operator):
+        bl_idname = "expressnode.recompile"
         bl_label = "Recompile Expression"
         bl_options = {"REGISTER", "UNDO"}
 
@@ -120,17 +120,17 @@ def _build_classes():
             if obj is None:
                 self.report({"ERROR"}, "No active object")
                 return {"CANCELLED"}
-            err = _apply(obj, obj.coding_nodes_expression,
-                         apply_mode=obj.coding_nodes_apply_mode)
-            obj.coding_nodes_error = err
+            err = _apply(obj, obj.expressnode_expression,
+                         apply_mode=obj.expressnode_apply_mode)
+            obj.expressnode_error = err
             if err:
                 self.report({"WARNING"}, "Compile error (see panel)")
                 return {"CANCELLED"}
             self.report({"INFO"}, "Expression compiled")
             return {"FINISHED"}
 
-    class CN_PT_panel(bpy.types.Panel):
-        bl_idname = "CN_PT_panel"
+    class EXPRESSNODE_PT_panel(bpy.types.Panel):
+        bl_idname = "EXPRESSNODE_PT_panel"
         bl_label = "ExpressNode"
         bl_space_type = "PROPERTIES"
         bl_region_type = "WINDOW"
@@ -142,28 +142,28 @@ def _build_classes():
             if obj is None:
                 layout.label(text="No active object")
                 return
-            layout.prop(obj, "coding_nodes_expression", text="")
-            layout.prop(obj, "coding_nodes_apply_mode", expand=True)
-            layout.operator("coding_nodes.recompile", icon="FILE_REFRESH")
-            err = getattr(obj, "coding_nodes_error", "")
+            layout.prop(obj, "expressnode_expression", text="")
+            layout.prop(obj, "expressnode_apply_mode", expand=True)
+            layout.operator("expressnode.recompile", icon="FILE_REFRESH")
+            err = getattr(obj, "expressnode_error", "")
             if err:
                 box = layout.box()
                 for line in err.splitlines():
                     box.label(text=line, icon="ERROR")
 
-    return [CN_OT_recompile, CN_PT_panel]
+    return [EXPRESSNODE_OT_recompile, EXPRESSNODE_PT_panel]
 
 
 def register():
     import bpy
     global _classes
-    bpy.types.Object.coding_nodes_expression = bpy.props.StringProperty(
+    bpy.types.Object.expressnode_expression = bpy.props.StringProperty(
         name="Expression", default=DEFAULT_EXPRESSION,
     )
-    bpy.types.Object.coding_nodes_error = bpy.props.StringProperty(
+    bpy.types.Object.expressnode_error = bpy.props.StringProperty(
         name="Compile Error", default="",
     )
-    bpy.types.Object.coding_nodes_apply_mode = bpy.props.EnumProperty(
+    bpy.types.Object.expressnode_apply_mode = bpy.props.EnumProperty(
         name="Apply", items=APPLY_MODE_ITEMS, default="offset",
     )
     _classes = _build_classes()
@@ -179,6 +179,6 @@ def unregister():
         except Exception:
             pass
     _classes.clear()
-    del bpy.types.Object.coding_nodes_expression
-    del bpy.types.Object.coding_nodes_error
-    del bpy.types.Object.coding_nodes_apply_mode
+    del bpy.types.Object.expressnode_expression
+    del bpy.types.Object.expressnode_error
+    del bpy.types.Object.expressnode_apply_mode

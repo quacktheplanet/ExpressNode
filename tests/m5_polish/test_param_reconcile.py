@@ -1,6 +1,6 @@
 """Parameter values survive a recompile when the signature is stable."""
 
-from coding_nodes.backend.params import changed_signature, reconcile
+from expressnode.backend.params import changed_signature, reconcile
 
 
 def test_kept_when_name_and_type_unchanged():

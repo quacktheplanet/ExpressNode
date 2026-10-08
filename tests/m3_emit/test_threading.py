@@ -6,9 +6,9 @@ one nesting level only, so `bump(p)` using p.x, p.y and p.z lost two of
 them, and helpers inside helpers lost their inputs.
 """
 
-from coding_nodes import compile
-from coding_nodes.backend.op_emitters import get_emitter
-from coding_nodes.backend.plan import build_plan
+from expressnode import compile
+from expressnode.backend.op_emitters import get_emitter
+from expressnode.backend.plan import build_plan
 
 NESTED = (
     "def wave(x, k):\n"

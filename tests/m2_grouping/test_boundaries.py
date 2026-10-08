@@ -1,7 +1,7 @@
 """Region boundary computation: edges crossing into/out of a region
 become the sub-group's input/output sockets."""
 
-from coding_nodes import compile, group
+from expressnode import compile, group
 
 
 def _child_by_fn(region, fn):

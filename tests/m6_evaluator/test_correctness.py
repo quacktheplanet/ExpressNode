@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from coding_nodes import compile, evaluate
+from expressnode import compile, evaluate
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 

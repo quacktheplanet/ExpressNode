@@ -7,12 +7,12 @@ docs trustworthy is an explicit project requirement.
 
 from pathlib import Path
 
-from coding_nodes.backend.op_emitters import (
+from expressnode.backend.op_emitters import (
     BACKEND_ONLY_OPS,
     all_emitter_ops,
     frontend_op_universe,
 )
-from coding_nodes.frontend.builtins import BUILTIN_FNS, BUILTIN_VARS
+from expressnode.frontend.builtins import BUILTIN_FNS, BUILTIN_VARS
 
 DOCS = Path(__file__).resolve().parents[2] / "docs"
 REF = DOCS / "expression-reference.md"

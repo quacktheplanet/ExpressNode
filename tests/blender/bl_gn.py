@@ -24,9 +24,9 @@ import bpy  # noqa: E402
 import numpy as np  # noqa: E402
 
 import cases  # noqa: E402
-from coding_nodes import compile as cn_compile, evaluate  # noqa: E402
-from coding_nodes.backend import modifier as cn_mod  # noqa: E402
-from coding_nodes.backend.pipeline import build_in_blender  # noqa: E402
+from expressnode import compile as cn_compile, evaluate  # noqa: E402
+from expressnode.backend import modifier as cn_mod  # noqa: E402
+from expressnode.backend.pipeline import build_in_blender  # noqa: E402
 
 TARGET = {"position": (0.4, -0.2, 1.1), "scale": (1.5, 0.5, 2.0),
           "rotation": (0.1, 0.2, 0.3)}
@@ -135,9 +135,9 @@ def expr_tree(mod):
 
 def recompile(obj, source, mode="offset"):
     activate(obj)
-    obj.coding_nodes_expression = source
-    obj.coding_nodes_apply_mode = mode
-    return bpy.ops.coding_nodes.recompile()
+    obj.expressnode_expression = source
+    obj.expressnode_apply_mode = mode
+    return bpy.ops.expressnode.recompile()
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def parity_case(case):
         result = recompile(obj, case["source"])
         if result != {"FINISHED"}:
             check(f"gn parity {case['name']}", False,
-                  f"recompile: {result}: {obj.coding_nodes_error}")
+                  f"recompile: {result}: {obj.expressnode_error}")
             return
         mod = obj.modifiers[cn_mod.MODIFIER_NAME]
     else:
@@ -254,11 +254,11 @@ def _nesting_depth(tree, seen=()):
 # ---------------------------------------------------------------------------
 
 def check_registration():
-    ok = (hasattr(bpy.ops.coding_nodes, "recompile")
-          and hasattr(bpy.ops.coding_nodes, "add_expression_group")
-          and hasattr(bpy.ops.coding_nodes, "update_expression_group")
-          and hasattr(bpy.types, "CN_PT_panel")
-          and hasattr(bpy.types, "CN_PT_group_panel"))
+    ok = (hasattr(bpy.ops.expressnode, "recompile")
+          and hasattr(bpy.ops.expressnode, "add_expression_group")
+          and hasattr(bpy.ops.expressnode, "update_expression_group")
+          and hasattr(bpy.types, "EXPRESSNODE_PT_panel")
+          and hasattr(bpy.types, "EXPRESSNODE_PT_group_panel"))
     check("3.1 add-on registers operators and panels", ok)
 
 
@@ -305,7 +305,7 @@ def check_ripple_golden_path():
     # 3.3 compile error: the last good modifier stays
     before = mod.node_group
     result = recompile(plane, 'def f(): return getattr(math, "sin")(P.x)')
-    err = plane.coding_nodes_error
+    err = plane.expressnode_error
     check("3.3 compile error is reported, not raised",
           result == {"CANCELLED"} and "line" in err.lower(),
           err.splitlines()[0] if err else "no error text")
@@ -354,17 +354,17 @@ def check_ripple_golden_path():
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1.0, location=(3.0, 0.0, 0.0))
     sphere = bpy.context.active_object
     nsrc = "def lift(P, t, amt=0.2):\n    return (P.z + 1.0) * amt\n"
-    ok_compile = recompile(sphere, nsrc, mode="normal") == {"FINISHED"} and not sphere.coding_nodes_error
+    ok_compile = recompile(sphere, nsrc, mode="normal") == {"FINISHED"} and not sphere.expressnode_error
     P0 = positions(sphere, evaluated=False)
     N0 = np.array([v.normal[:] for v in sphere.data.vertices])
     got = positions(sphere)
     want = P0 + N0 * ((P0[:, 2:3] + 1.0) * 0.2)
     err = np.abs(got - want).max()
     check("5.2 normal mode pushes points along their normals",
-          ok_compile and err < 2e-4, f"max err {err:.2e}, error '{sphere.coding_nodes_error}'")
+          ok_compile and err < 2e-4, f"max err {err:.2e}, error '{sphere.expressnode_error}'")
     recompile(sphere, "def f(P, t):\n    return P * 0.1\n", mode="normal")
     check("5.2 normal mode rejects a vector result with a clear message",
-          "must return a number" in sphere.coding_nodes_error, sphere.coding_nodes_error[:120])
+          "must return a number" in sphere.expressnode_error, sphere.expressnode_error[:120])
 
 
 def check_errors_in_panel():
@@ -378,7 +378,7 @@ def check_errors_in_panel():
     }
     for label, src in bad.items():
         result = recompile(obj, src)
-        err = obj.coding_nodes_error
+        err = obj.expressnode_error
         check(f"5.4 error '{label}' shown in panel",
               result == {"CANCELLED"} and err and "line" in err.lower(),
               err.splitlines()[0] if err else "no text")
@@ -391,7 +391,7 @@ def check_curl_noise():
     src = (cases._EXAMPLES / "curl_noise.py").read_text(encoding="utf-8")
     result = recompile(ico, src)
     if not check("3.4 curl-noise builds", result == {"FINISHED"},
-                 ico.coding_nodes_error):
+                 ico.expressnode_error):
         return
     mod = ico.modifiers[cn_mod.MODIFIER_NAME]
     tree = expr_tree(mod)
@@ -439,7 +439,7 @@ def check_objects_independent():
 def check_shape_b():
     """Shape B without the node editor: build the group, drop it into a
     user's tree, wire it into Set Position, rebuild it in place."""
-    from coding_nodes.backend import node_group as cn_ng
+    from expressnode.backend import node_group as cn_ng
     reset_scene()
     obj = point_object("Host", 100)
     src = ("def offset(P, t, amp=0.3):\n"
@@ -462,7 +462,7 @@ def check_shape_b():
     sp = host.nodes.new("GeometryNodeSetPosition")
     gnode = host.nodes.new("GeometryNodeGroup")
     gnode.node_tree = group
-    gnode["coding_nodes_source"] = src
+    gnode["expressnode_source"] = src
     host.links.new(gi.outputs[0], sp.inputs["Geometry"])
     host.links.new(gnode.outputs["Result"], sp.inputs["Offset"])
     host.links.new(sp.outputs[0], go.inputs[0])

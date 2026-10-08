@@ -57,7 +57,7 @@ workflow.
 
 ExpressNode grew out of an earlier procedural-geometry engine whose
 compiler (DSL → SymbolGraph → EvalGraph → GN tree) it builds on. That
-IR is now vendored in `coding_nodes/_ir`; ExpressNode adds one more
+IR is now vendored in `expressnode/_ir`; ExpressNode adds one more
 frontend (the Python AST parser) and one polish pass (group-wrapping)
 on top, and needs nothing else installed.
 

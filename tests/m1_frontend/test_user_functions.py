@@ -2,7 +2,7 @@
 
 import pytest
 
-from coding_nodes import CompileError, compile
+from expressnode import CompileError, compile
 
 
 def _ops(c):

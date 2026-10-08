@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 
-from coding_nodes.backend.plan import EmissionPlan, build_plan
-from coding_nodes.frontend.parser import CompiledExpression, compile
+from ..backend.plan import EmissionPlan, build_plan
+from ..frontend.parser import CompiledExpression, compile
 
 
 def plan_source(source: str, inline_threshold: int = 3,
@@ -28,19 +28,19 @@ def plan_source(source: str, inline_threshold: int = 3,
 
 def osl_source(source: str, shader_name: str = "") -> str:
     """Compile + emit an OSL shader. Pure, headless."""
-    from coding_nodes.backend.osl import emit_osl
+    from ..backend.osl import emit_osl
     return emit_osl(compile(source), shader_name=shader_name)
 
 
 def glsl_source(source: str, func_name: str = "") -> str:
     """Compile + emit a GLSL fragment shader. Pure, headless."""
-    from coding_nodes.backend.glsl import emit_glsl
+    from ..backend.glsl import emit_glsl
     return emit_glsl(compile(source), func_name=func_name)
 
 
 def wgsl_source(source: str, fn_name: str = "") -> str:
     """Compile + emit a WGSL compute shader. Pure, headless."""
-    from coding_nodes.backend.wgsl import emit_wgsl
+    from ..backend.wgsl import emit_wgsl
     return emit_wgsl(compile(source), fn_name=fn_name)
 
 
@@ -56,9 +56,9 @@ def build_in_blender(source: str, inline_threshold: int = 3,
     """
     plan = plan_source(source, inline_threshold=inline_threshold,
                        apply_mode=apply_mode)
-    from coding_nodes.backend.gn_executor import execute, tree_name_for
+    from ..backend.gn_executor import execute, tree_name_for
     if suffix is None:
         suffix = tree_name_for(plan, source)
     tree = execute(plan, suffix=suffix, source=source)
-    tree["coding_nodes_params"] = json.dumps(plan.parameters)
+    tree["expressnode_params"] = json.dumps(plan.parameters)
     return tree

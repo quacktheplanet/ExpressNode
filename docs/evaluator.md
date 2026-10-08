@@ -10,7 +10,7 @@ has the right groups, nodes, links, interfaces). They do not prove the
 expression *computes the right numbers*. The evaluator closes that gap:
 
 ```python
-from coding_nodes import compile, evaluate
+from expressnode import compile, evaluate
 import numpy as np
 
 c = compile(open("examples/ripple.py").read())
@@ -41,7 +41,7 @@ evaluate(compiled,
 
 numpy is the evaluator's only dependency — and the only part of the
 package that needs it. The core (frontend, grouping, backend plan)
-imports without numpy; `coding_nodes.evaluate` is exposed when numpy is
+imports without numpy; `expressnode.evaluate` is exposed when numpy is
 present and skipped otherwise.
 
 ## What it proves (headless, no Blender)

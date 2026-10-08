@@ -1,6 +1,6 @@
-"""Add coding_nodes to sys.path so tests can import it without an install step.
+"""Add expressnode to sys.path so tests can import it without an install step.
 
-The IR (formerly sacred_geometry.ir) is now vendored at coding_nodes._ir,
+The IR (formerly sacred_geometry.ir) is now vendored at expressnode._ir,
 so no sibling repo path is needed.
 """
 

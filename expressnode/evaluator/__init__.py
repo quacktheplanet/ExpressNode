@@ -8,6 +8,6 @@ validated against.
 Depends on numpy (the only part of the package that does).
 """
 
-from coding_nodes.evaluator.interp import EvalResult, evaluate
+from ..evaluator.interp import EvalResult, evaluate
 
 __all__ = ["evaluate", "EvalResult"]

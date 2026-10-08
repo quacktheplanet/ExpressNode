@@ -4,7 +4,7 @@ actionable message. This is the M5 error-triage guarantee.
 
 import pytest
 
-from coding_nodes import CompileError, compile
+from expressnode import CompileError, compile
 
 # (source, substring the message must contain)
 CASES = [

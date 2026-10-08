@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as _dc_field
 
-from coding_nodes.frontend.builtins import BUILTIN_FNS, BUILTIN_VARS
+from ..frontend.builtins import BUILTIN_FNS, BUILTIN_VARS
 
 
 @dataclass(frozen=True)

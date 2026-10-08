@@ -1,7 +1,7 @@
 # ExpressNode
 
 *Formerly Coding Nodes / Expression Nodes. The name you see changed; the Python package
-(`coding_nodes`), the add-on module and the operator ids did not, so existing files keep working.*
+(`expressnode`), the add-on module and the operator ids did not, so existing files keep working.*
 
 A Blender addon that compiles a **Python expression** into a clean,
 group-wrapped **Geometry Nodes subtree**. The user types math; the
@@ -69,7 +69,7 @@ python3 tests/blender/run_all.py --blender <blender.exe> [--blender ...] \
 
 ## Install (Blender)
 
-1. `python3 tools/package_addon.py dist` → `dist/coding_nodes_addon.zip`
+1. `python3 tools/package_addon.py dist` → `dist/expressnode_addon.zip`
    (bundles the package; no manual `sys.path` setup needed). It's a
    legacy add-on zip (bl_info), which Blender 5 still installs; tested
    on 5.0.1 and 5.1.2.
@@ -114,7 +114,7 @@ Read order:
 
 The intermediate representation (EvalGraph IR) started life in an
 earlier procedural-geometry engine and is now vendored in
-`coding_nodes/_ir`, so ExpressNode is self-contained: nothing else
+`expressnode/_ir`, so ExpressNode is self-contained: nothing else
 needs to be installed. ExpressNode adds the Python-expression frontend,
 the group-wrapping pass and the user-facing modifier and node group.
 

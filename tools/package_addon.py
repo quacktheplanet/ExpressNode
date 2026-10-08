@@ -1,93 +1,54 @@
-"""Build an installable Blender addon zip.
+"""Build the installable Blender extension zip.
 
-The IR (formerly sacred_geometry.ir) is vendored inside coding_nodes/_ir,
-so the zip only needs to bundle coding_nodes — no sibling repo required.
+    python tools/package_addon.py [dist]   ->  dist/expressnode-<version>.zip
 
-Resulting zip layout (what Blender's "Install from Disk" expects — a
-single top-level package directory):
-
-    coding_nodes_addon/
-        __init__.py        (bl_info + register/unregister shim)
-        coding_nodes/      (copied, includes _ir/)
-
-`build()` is pure filesystem work — headlessly testable. Whether Blender
-loads the result is the M5 Blender checklist step.
+The zip is the `expressnode` package itself, with blender_manifest.toml at its
+root, which is the layout Blender's Extensions expect (Preferences › Get
+Extensions › Install from Disk). It produces the same layout as
+`blender --command extension build --source-dir expressnode`, without needing
+Blender, so it can be tested headlessly.
 """
 
 from __future__ import annotations
 
-import shutil
+import re
 import zipfile
 from pathlib import Path
 
-PKG_NAME = "coding_nodes_addon"
-
-_SHIM = '''\
-"""ExpressNode — Modifier + Node Group (bundled addon)."""
-
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(__file__))
-
-bl_info = {
-    "name": "ExpressNode",
-    "author": "Lucas DeMeritt",
-    "version": (0, 6, 0),
-    "blender": (5, 0, 0),
-    "location": "Properties > Modifiers · Node Editor > ExpressNode",
-    "description": "Compile a Python expression into a Geometry Nodes subtree",
-    "category": "Node",
-}
+PKG_NAME = "expressnode"
+_SKIP_DIRS = {"__pycache__", ".pytest_cache"}
 
 
-def register():
-    from coding_nodes.backend import modifier, node_group
-    modifier.register()
-    node_group.register()
+def _source() -> Path:
+    return Path(__file__).resolve().parents[1] / PKG_NAME
 
 
-def unregister():
-    from coding_nodes.backend import modifier, node_group
-    node_group.unregister()
-    modifier.unregister()
-'''
-
-
-def _coding_nodes_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+def version() -> str:
+    text = (_source() / "blender_manifest.toml").read_text(encoding="utf-8")
+    m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.M)
+    if not m:
+        raise ValueError("blender_manifest.toml has no version")
+    return m.group(1)
 
 
 def build(dest_dir: str | Path) -> Path:
-    """Assemble the addon under dest_dir and zip it. Returns the zip path."""
+    """Zip the extension into dest_dir. Returns the zip path."""
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    stage = dest_dir / PKG_NAME
-    if stage.exists():
-        shutil.rmtree(stage)
-    stage.mkdir(parents=True)
-
-    (stage / "__init__.py").write_text(_SHIM, encoding="utf-8")
-
-    def _ignore(_d, names):
-        return [n for n in names
-                if n in ("__pycache__", ".pytest_cache") or n.endswith(".pyc")]
-
-    shutil.copytree(_coding_nodes_root() / "coding_nodes",
-                    stage / "coding_nodes", ignore=_ignore)
-
-    zip_path = dest_dir / f"{PKG_NAME}.zip"
+    src = _source()
+    zip_path = dest_dir / f"{PKG_NAME}-{version()}.zip"
     if zip_path.exists():
         zip_path.unlink()
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for p in sorted(stage.rglob("*")):
-            if p.is_file():
-                zf.write(p, p.relative_to(dest_dir))
+        for p in sorted(src.rglob("*")):
+            rel = p.relative_to(src)
+            if not p.is_file() or _SKIP_DIRS & set(rel.parts) or p.suffix in (".pyc", ".zip"):
+                continue
+            zf.write(p, rel.as_posix())
     return zip_path
 
 
 if __name__ == "__main__":
     import sys
     out = sys.argv[1] if len(sys.argv) > 1 else "dist"
-    z = build(out)
-    print(f"built {z}")
+    print(f"built {build(out)}")

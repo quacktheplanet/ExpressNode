@@ -10,8 +10,8 @@ Pure and headless — no `bpy`. Tested in tests/m2_grouping/.
 
 from __future__ import annotations
 
-from coding_nodes.frontend.parser import CompiledExpression
-from coding_nodes.grouping.regions import (
+from ..frontend.parser import CompiledExpression
+from ..grouping.regions import (
     BoundarySocket,
     GroupedGraph,
     GroupRegion,
@@ -169,7 +169,7 @@ def group(compiled: CompiledExpression,
     """Run the grouping pass over a compiled expression.
 
     Args:
-        compiled: result of `coding_nodes.compile(...)`.
+        compiled: result of `expressnode.compile(...)`.
         inline_threshold: regions with this many nodes or fewer stay
             flattened into their parent instead of becoming a sub-group.
 

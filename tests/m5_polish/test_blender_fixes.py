@@ -7,9 +7,9 @@ tests/blender/ for the in-Blender checks that found them.
 import numpy as np
 import pytest
 
-from coding_nodes import compile, evaluate, osl_source
-from coding_nodes.backend.op_emitters import all_emitter_ops, get_emitter
-from coding_nodes.frontend.errors import CompileError
+from expressnode import compile, evaluate, osl_source
+from expressnode.backend.op_emitters import all_emitter_ops, get_emitter
+from expressnode.frontend.errors import CompileError
 
 # Operation enums of Blender 5.0/5.1's Math and Vector Math nodes.
 BLENDER_MATH_OPS = {

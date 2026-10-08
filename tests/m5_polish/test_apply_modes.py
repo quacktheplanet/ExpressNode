@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import plan_source
-from coding_nodes.backend.plan import APPLY_MODES
+from expressnode import plan_source
+from expressnode.backend.plan import APPLY_MODES
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 

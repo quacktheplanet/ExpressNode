@@ -57,7 +57,7 @@ produces a readable algorithmic node tree — not a flat sea of math nodes.
 ## Reuse of existing infrastructure
 
 *(Written before the IR was vendored: the `sacred_geometry` modules
-below now live in `coding_nodes/_ir`, and nothing outside this repo is
+below now live in `expressnode/_ir`, and nothing outside this repo is
 needed.)*
 
 The compiler reuses the IR and GN backend already built in
@@ -158,7 +158,7 @@ A new modifier type registered by the addon. UI:
 
 ## Shape B: Expression Node Group
 
-A `coding_nodes_expression` node group the user drops into any existing
+A `expressnode_expression` node group the user drops into any existing
 GN tree via `Shift+A → Group → Expression`. Its inputs are auto-derived
 from the user's expression signature.
 

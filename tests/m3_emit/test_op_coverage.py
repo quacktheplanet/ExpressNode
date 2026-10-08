@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import compile
-from coding_nodes.backend.op_emitters import (
+from expressnode import compile
+from expressnode.backend.op_emitters import (
     all_emitter_ops,
     frontend_op_universe,
     get_emitter,

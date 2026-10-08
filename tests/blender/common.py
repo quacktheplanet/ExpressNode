@@ -45,15 +45,11 @@ def guard(name: str, fn, *args, **kwargs):
 
 
 def register_addon():
-    """Load the add-on shell from the repo (blender_addon/__init__.py)
-    and register it, the way Blender does after Install from Disk."""
-    spec = importlib.util.spec_from_file_location(
-        "expression_nodes_addon", REPO / "blender_addon" / "__init__.py")
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["expression_nodes_addon"] = mod
-    spec.loader.exec_module(mod)
-    mod.register()
-    return mod
+    """Register the extension straight from the repo (expressnode.register()),
+    the way Blender does after installing it."""
+    import expressnode
+    expressnode.register()
+    return expressnode
 
 
 def done():

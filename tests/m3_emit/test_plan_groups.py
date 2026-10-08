@@ -4,7 +4,7 @@ in the root."""
 
 from pathlib import Path
 
-from coding_nodes import plan_source
+from expressnode import plan_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 

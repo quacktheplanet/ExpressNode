@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from coding_nodes.evaluator.noise import value_noise, voronoi_f1
+from ..evaluator.noise import value_noise, voronoi_f1
 
 
 # --- broadcasting helpers ---

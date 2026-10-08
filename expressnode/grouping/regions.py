@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as _dc_field
 
-from coding_nodes._ir.eval_graph import EvalGraph, SocketType
+from .._ir.eval_graph import EvalGraph, SocketType
 
 
 @dataclass(frozen=True)

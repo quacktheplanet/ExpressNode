@@ -27,7 +27,7 @@ import bpy  # noqa: E402
 import numpy as np  # noqa: E402
 
 import cases  # noqa: E402
-from coding_nodes import compile as cn_compile, evaluate, glsl_source  # noqa: E402
+from expressnode import compile as cn_compile, evaluate, glsl_source  # noqa: E402
 
 RES = 64
 
@@ -179,7 +179,7 @@ def shape_b_operators():
     space.cursor_location = (320.0, -40.0)
 
     with bpy.context.temp_override(window=win, area=area, region=region):
-        result = bpy.ops.coding_nodes.add_expression_group()
+        result = bpy.ops.expressnode.add_expression_group()
     groups = [n for n in host.nodes if n.bl_idname == "GeometryNodeGroup"]
     ok = (result == {"FINISHED"} and len(groups) == 1
           and groups[0].node_tree is not None
@@ -193,26 +193,26 @@ def shape_b_operators():
           tuple(round(v) for v in gnode.location) == (320, -40),
           tuple(gnode.location))
 
-    scene.coding_nodes_group_expression = (
+    scene.expressnode_group_expression = (
         "def offset(P, t, amp=0.3):\n"
         "    return vec3(amp, 0.0, 0.0)\n")
     with bpy.context.temp_override(window=win, area=area, region=region):
-        result = bpy.ops.coding_nodes.update_expression_group()
+        result = bpy.ops.expressnode.update_expression_group()
     kinds = {n.bl_idname for n in gnode.node_tree.nodes}
     check("Update Selected Group rebuilds the active group",
           result == {"FINISHED"} and gnode.node_tree.name == "Expr_offset"
           and "ShaderNodeMath" not in kinds,
           f"{result}, nodes {sorted(kinds)}")
 
-    scene.coding_nodes_group_expression = "def f(P):\n    return P +"
+    scene.expressnode_group_expression = "def f(P):\n    return P +"
     with bpy.context.temp_override(window=win, area=area, region=region):
-        result = bpy.ops.coding_nodes.add_expression_group()
+        result = bpy.ops.expressnode.add_expression_group()
     check("4.4 bad expression: error in panel, no node added",
-          result == {"CANCELLED"} and scene.coding_nodes_group_error
+          result == {"CANCELLED"} and scene.expressnode_group_error
           and len([n for n in host.nodes
                    if n.bl_idname == "GeometryNodeGroup"]) == 1,
-          scene.coding_nodes_group_error.splitlines()[0]
-          if scene.coding_nodes_group_error else "")
+          scene.expressnode_group_error.splitlines()[0]
+          if scene.expressnode_group_error else "")
 
     # Panels: draw the Node Editor sidebar tab and the modifier panel.
     ui = next(r for r in area.regions if r.type == "UI")
@@ -228,7 +228,7 @@ def shape_b_operators():
     bpy.context.view_layer.objects.active = obj
     bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
     area.spaces.active.context = "MODIFIER"
-    obj.coding_nodes_error = "CompileError at line 1: example"
+    obj.expressnode_error = "CompileError at line 1: example"
     errors = draw_errors()
     check("modifier panel draws without errors (with an error box)",
           not errors, errors[:300] or "drawn")

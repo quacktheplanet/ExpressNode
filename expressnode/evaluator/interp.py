@@ -12,8 +12,8 @@ from typing import Any
 
 import numpy as np
 
-from coding_nodes.evaluator.ops import OPS
-from coding_nodes.frontend.parser import CompiledExpression
+from ..evaluator.ops import OPS
+from ..frontend.parser import CompiledExpression
 
 
 @dataclass
@@ -54,7 +54,7 @@ def evaluate(compiled: CompiledExpression,
     """Evaluate a compiled expression numerically.
 
     Args:
-        compiled: result of `coding_nodes.compile(...)`.
+        compiled: result of `expressnode.compile(...)`.
         P:        (N, 3) positions. If omitted, a single point at origin.
         t/frame/dt: scene time scalars.
         normals:  (N, 3); defaults to normalized P (origin -> +Z).

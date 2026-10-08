@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field as _dc_field
 from typing import Callable
 
-from coding_nodes.frontend.types import TypeKind
+from ..frontend.types import TypeKind
 
 
 # ---------------------------------------------------------------------------

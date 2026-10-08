@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from coding_nodes import plan_source
+from expressnode import plan_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 
@@ -54,8 +54,8 @@ def test_plan_describe_is_serializable():
 def test_every_eval_node_is_placed_or_interface():
     """Each EvalGraph node is either a PlannedNode somewhere, or an
     interface/param-only op that is intentionally not emitted."""
-    from coding_nodes import compile
-    from coding_nodes.backend.op_emitters import get_emitter
+    from expressnode import compile
+    from expressnode.backend.op_emitters import get_emitter
 
     c = compile(_src("ripple.py"))
     plan = plan_source(_src("ripple.py"))

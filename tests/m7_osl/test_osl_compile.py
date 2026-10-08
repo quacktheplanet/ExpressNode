@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import osl_source
+from expressnode import osl_source
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 OSLC = shutil.which("oslc")

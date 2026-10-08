@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from coding_nodes import compile, plan_source
-from coding_nodes.backend.op_emitters import get_emitter
+from expressnode import compile, plan_source
+from expressnode.backend.op_emitters import get_emitter
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 
@@ -56,7 +56,7 @@ def test_root_group_result_is_wired():
 def test_shape_a_and_shape_b_share_one_plan():
     """Both shapes call the same pipeline; the plan is identical, so the
     node tree they produce is identical."""
-    from coding_nodes.backend.pipeline import plan_source as ps
+    from expressnode.backend.pipeline import plan_source as ps
     src = _src("ripple.py")
     a = ps(src).describe()
     b = ps(src).describe()

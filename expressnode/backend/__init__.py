@@ -13,26 +13,26 @@ Requires Blender:
     pipeline      build_in_blender(source) -> bpy NodeTree
 """
 
-from coding_nodes.backend.op_emitters import (
+from ..backend.op_emitters import (
     OpEmitter,
     all_emitter_ops,
     frontend_op_universe,
     get_emitter,
 )
-from coding_nodes.backend.plan import (
+from ..backend.plan import (
     EmissionPlan,
     GroupDef,
     build_plan,
 )
-from coding_nodes.backend.pipeline import (
+from ..backend.pipeline import (
     glsl_source,
     osl_source,
     plan_source,
     wgsl_source,
 )
-from coding_nodes.backend.osl import emit_osl, osl_template_ops
-from coding_nodes.backend.glsl import emit_glsl, glsl_template_ops
-from coding_nodes.backend.wgsl import emit_wgsl, wgsl_template_ops
+from ..backend.osl import emit_osl, osl_template_ops
+from ..backend.glsl import emit_glsl, glsl_template_ops
+from ..backend.wgsl import emit_wgsl, wgsl_template_ops
 
 __all__ = [
     "OpEmitter",

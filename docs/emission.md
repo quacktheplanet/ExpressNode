@@ -1,7 +1,7 @@
 # The Backend: Emitters, Plan, Executor (M3)
 
 How a `GroupedGraph` becomes a Blender node tree. Design behind
-`coding_nodes/backend/`.
+`expressnode/backend/`.
 
 ## Three layers, one Blender boundary
 

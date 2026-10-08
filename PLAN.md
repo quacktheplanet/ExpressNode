@@ -7,7 +7,7 @@ a working artifact.
 
 ```
 ExpressNode/
-├── coding_nodes/                    # the Python package
+├── expressnode/                    # the Python package
 │   ├── __init__.py
 │   ├── frontend/                    # Python AST -> EvalGraph
 │   │   ├── parser.py                # AST traversal
@@ -31,7 +31,7 @@ ExpressNode/
 
 The compiler IR (`EvalGraph`, optimizer) and base GN emitter came from
 an earlier engine (`sacred_geometry`) and are now vendored in
-`coding_nodes/_ir`. This package adds the frontend, the grouping pass,
+`expressnode/_ir`. This package adds the frontend, the grouping pass,
 and the user-facing shapes.
 
 ## Milestones
@@ -49,7 +49,7 @@ Each milestone leaves a working, tested artifact.
 ### M1 — Frontend parses the supported subset (≈1 week) ✅
 
 **Deliverables:**
-- `coding_nodes.frontend.parser` accepts a Python expression and returns
+- `expressnode.frontend.parser` accepts a Python expression and returns
   an EvalGraph for the supported subset.
 - Built-in functions (sin, cos, noise, vec3, attr, etc.) lower to
   EvalGraph ops.
@@ -65,7 +65,7 @@ the unit tests pass.
 ### M2 — Group-wrapping pass (≈1 week) ✅
 
 **Deliverables:**
-- `coding_nodes.grouping.group_pass` reconstructs the call tree from
+- `expressnode.grouping.group_pass` reconstructs the call tree from
   per-node scope paths and produces a `GroupedGraph`: a hierarchy of
   named regions over the flat EvalGraph.
 - Boundary computation: edges (and graph outputs) crossing a region
@@ -153,7 +153,7 @@ new node.
 - **Doc-accuracy guard** (`test_doc_accuracy.py`): docs cannot drift —
   every built-in must be documented; emitter coverage re-asserted.
 - **Addon packaging** (`tools/package_addon.py`): builds a
-  self-contained `coding_nodes_addon.zip` bundling both packages plus a
+  self-contained `expressnode_addon.zip` bundling both packages plus a
   register shim; structure verified headlessly.
 
 **Blender layer (built, pending verification):**
@@ -171,7 +171,7 @@ refresh.
 ### M6 — Reference Evaluator / correctness oracle ✅
 
 **Fully headless — built + tested, no Blender step:**
-- `coding_nodes/evaluator/`: a numpy interpreter of the EvalGraph.
+- `expressnode/evaluator/`: a numpy interpreter of the EvalGraph.
   `evaluate(compiled, P=..., t=..., params=...)` → `EvalResult`.
 - `evaluator/noise.py`: the canonical reference value-noise / voronoi
   (the spec OSL/GLSL/GPU must reproduce).

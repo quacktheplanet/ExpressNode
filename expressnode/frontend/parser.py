@@ -15,15 +15,15 @@ import ast
 from dataclasses import dataclass, field as _dc_field
 from typing import Any
 
-from coding_nodes._ir.eval_graph import EvalGraph, EvalNode, SocketType
+from .._ir.eval_graph import EvalGraph, EvalNode, SocketType
 
-from coding_nodes.frontend.builtins import (
+from ..frontend.builtins import (
     BUILTIN_FNS,
     BUILTIN_VARS,
     SPECIAL_FUNCTIONS,
 )
-from coding_nodes.frontend.errors import CompileError, SourceSpan
-from coding_nodes.frontend.types import (
+from ..frontend.errors import CompileError, SourceSpan
+from ..frontend.types import (
     TypeKind,
     promote,
     vec_type_for_arity,
