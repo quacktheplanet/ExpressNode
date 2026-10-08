@@ -33,7 +33,8 @@ works from the command line, and opens in Blender without the extension installe
 ```python
 def ripple(P, t, freq=6.0, amp=0.25):
     r = length(vec3(P.x, P.y, 0.0))
-    return vec3(0.0, 0.0, sin(r * freq - t * 2.0) * amp / (1.0 + r))
+    wave = sin(r * freq - t * 2.0)
+    return vec3(0.0, 0.0, wave * amp / (1.0 + r))
 ```
 
 Play the timeline and the grid ripples outwards. `freq` and `amp` appear on the modifier, where you

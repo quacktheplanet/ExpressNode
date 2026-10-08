@@ -19,7 +19,8 @@ OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else os.path.join(R
 
 EXPR = '''def ripple(P, t, freq=6.0, amp=0.25):
     r = length(vec3(P.x, P.y, 0.0))
-    return vec3(0.0, 0.0, sin(r * freq - t * 2.0) * amp / (1.0 + r))
+    wave = sin(r * freq - t * 2.0)
+    return vec3(0.0, 0.0, wave * amp / (1.0 + r))
 '''
 
 
@@ -52,6 +53,7 @@ def arrange():
             area.spaces.active.text = text
             area.spaces.active.font_size = 15
             area.spaces.active.show_line_numbers = True
+            area.spaces.active.show_word_wrap = True   # never cut a line off in the picture
             area.spaces.active.top = 0
         elif area.type == 'NODE_EDITOR':
             space = area.spaces.active
