@@ -11,9 +11,9 @@ runtime checklists are automated by `tests/blender/` and `tests/gpu/`
 pip install pytest
 ```
 
-The test suite imports both `coding_nodes` (this project) and
-`sacred_geometry` (the sibling engine that provides the IR). The path
-wiring is handled by `tests/conftest.py` — no install step needed.
+The test suite imports `coding_nodes` (this project, with its IR
+vendored in `coding_nodes/_ir`). The path wiring is handled by
+`tests/conftest.py` — no install step needed.
 
 ## Run everything
 
@@ -146,7 +146,7 @@ Quick manual look at the grouped structure:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 from coding_nodes import compile, group
 import json, pathlib
 src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
@@ -179,7 +179,7 @@ Inspect the plan for an example:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 from coding_nodes import plan_source
 import json, pathlib
 src = pathlib.Path("ExpressNode/examples/curl_noise.py").read_text()
@@ -460,7 +460,7 @@ Try it:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 import numpy as np
 from coding_nodes import compile, evaluate
 c = compile(open("ExpressNode/examples/ripple.py").read())
@@ -492,7 +492,7 @@ Inspect a generated shader:
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 from coding_nodes import osl_source
 print(osl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
@@ -552,7 +552,7 @@ glslang tests skip without the toolchain).
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 from coding_nodes import glsl_source
 print(glsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY
@@ -608,7 +608,7 @@ validator tests skip without naga/tint).
 
 ```bash
 python3 - <<'PY'
-import sys; sys.path[:0] = ["ExpressNode", "sacred-geometry-engine"]
+import sys; sys.path[:0] = ["ExpressNode"]
 from coding_nodes import wgsl_source
 print(wgsl_source(open("ExpressNode/examples/ripple.py").read()))
 PY

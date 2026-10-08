@@ -56,6 +56,10 @@ produces a readable algorithmic node tree — not a flat sea of math nodes.
 
 ## Reuse of existing infrastructure
 
+*(Written before the IR was vendored: the `sacred_geometry` modules
+below now live in `coding_nodes/_ir`, and nothing outside this repo is
+needed.)*
+
 The compiler reuses the IR and GN backend already built in
 `sacred-geometry-engine/sacred_geometry/`:
 

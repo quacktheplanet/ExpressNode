@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 bl_info = {
     "name": "ExpressNode",
-    "author": "Geonodes Annihilation",
+    "author": "Lucas DeMeritt",
     "version": (0, 6, 0),
     "blender": (5, 0, 0),
     "location": "Properties > Modifiers · Node Editor > ExpressNode",

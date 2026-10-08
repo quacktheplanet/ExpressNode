@@ -53,20 +53,13 @@ One compiler, two user-facing surfaces:
 The compiler is shared. The user picks whichever shape fits their
 workflow.
 
-## Where this fits with the other projects in the repo
+## Where this came from
 
-- **`annihilation-morph-script/`** — a single Blender script that
-  demonstrates the visual target. Doesn't use the compiler.
-- **`sacred-geometry-engine/`** — a framework-shaped procedural engine.
-  Phase 1 MVP shipped. Its compiler (DSL → SymbolGraph → EvalGraph →
-  GN tree) is the foundation this project builds on.
-- **`ExpressNode/`** (this) — adds a Python-expression frontend to the
-  same compiler, plus the user-facing modifier and node group.
-
-The two engineering projects share infrastructure: the EvalGraph IR
-and the GN emitter live in `sacred_geometry/`. ExpressNode is a
-thinner addon that adds one more frontend (the Python AST parser) and
-one polish pass (group-wrapping) on top.
+ExpressNode grew out of an earlier procedural-geometry engine whose
+compiler (DSL → SymbolGraph → EvalGraph → GN tree) it builds on. That
+IR is now vendored in `coding_nodes/_ir`; ExpressNode adds one more
+frontend (the Python AST parser) and one polish pass (group-wrapping)
+on top, and needs nothing else installed.
 
 ## What "done" looks like (first ship)
 

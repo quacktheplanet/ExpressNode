@@ -110,22 +110,18 @@ Read order:
     comparison.
 13. `docs/examples/` — two worked examples.
 
-## Relationship to the other projects in this repo
+## Where the compiler came from
 
-| Project | Role |
-|---|---|
-| `../annihilation-morph-script/` | Single Blender script — the visual target |
-| `../sacred-geometry-engine/` | Procedural engine. Phase 1 MVP shipped. Provides the compiler IR and GN emitter ExpressNode builds on. |
-| `ExpressNode/` (this) | Adds a Python-expression frontend to that compiler, plus the user-facing modifier and node group. |
-
-ExpressNode is an addon that sits on top of `sacred_geometry`'s
-compiler infrastructure. The IR and GN backend live there; the
-frontend and UX shells live here.
+The intermediate representation (EvalGraph IR) started life in an
+earlier procedural-geometry engine and is now vendored in
+`coding_nodes/_ir`, so ExpressNode is self-contained: nothing else
+needs to be installed. ExpressNode adds the Python-expression frontend,
+the group-wrapping pass and the user-facing modifier and node group.
 
 ## Target platform
 
 Blender 5.0 or newer (tested on 5.0.1, 5.1.2 and 5.2.2). Python 3.11+.
 
-## License
+## Licence
 
-Unlicensed. To be decided before public release.
+GPL-3.0-or-later, like Blender itself: see [LICENSE](LICENSE).

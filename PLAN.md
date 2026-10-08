@@ -29,9 +29,10 @@ ExpressNode/
     └── curl_noise.py
 ```
 
-The compiler IR (`EvalGraph`, optimizer) and base GN emitter come from
-`sacred-geometry-engine/sacred_geometry/`. This package adds the
-frontend, the grouping pass, and the user-facing shapes.
+The compiler IR (`EvalGraph`, optimizer) and base GN emitter came from
+an earlier engine (`sacred_geometry`) and are now vendored in
+`coding_nodes/_ir`. This package adds the frontend, the grouping pass,
+and the user-facing shapes.
 
 ## Milestones
 
